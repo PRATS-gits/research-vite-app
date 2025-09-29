@@ -26,6 +26,6 @@
     "@reui": "https://reui.io/r/{name}.json",
     "@lina": "https://lina.sameer.sh/r/{name}.json",
     "@kokonutui": "https://kokonutui.com/r/{name}.json",
-    "@magicui": "https://magicui.design/r/{name}.json"    
+    "@magicui": "https://magicui.design/r/{name}.json"
   }
 }
