@@ -3,8 +3,14 @@ import { Badge } from '@/components/ui/badge';
 import { LibrarySearchBar } from '@/components/library/LibrarySearchBar';
 import { LibraryControls } from '@/components/library/LibraryControls';
 import { SelectionControls } from '@/components/library/SelectionControls';
+import { CreateFolderModal } from '@/components/library/CreateFolderModal';
+import { UploadModal } from '@/components/library/UploadModal';
+import { DeleteConfirmModal } from '@/components/library/DeleteConfirmModal';
+import { SweetAlert } from '@/components/ui/SweetAlert';
 import { useLibrarySelection } from '@/hooks/useLibrarySelection';
+import { useModalRouting } from '@/hooks/useModalRouting';
 import type { CreateOption, UploadOption, FilterOption, SortOption } from '@/types/libraryControls';
+import type { CreateFolderData, DeleteConfirmData, SweetAlertData } from '@/types/libraryModals';
 
 /**
  * LibraryPage component - Complete redesign with search and controls
@@ -28,6 +34,9 @@ export function LibraryPage() {
     toggleSelectionMode
   } = useLibrarySelection(mockItemIds);
 
+  // Modal routing integration
+  const { openModal, closeModal, modalState } = useModalRouting();
+
   // Search bar handlers
   const handleSearchChange = useCallback((value: string) => {
     setSearchValue(value);
@@ -38,13 +47,35 @@ export function LibraryPage() {
   // Control handlers
   const handleCreateSelect = useCallback((option: CreateOption) => {
     console.log('Create option selected:', option);
-    // Placeholder: Navigate to creation modal/page
-  }, []);
+    if (option === 'folder') {
+      openModal('createFolder');
+    } else {
+      // Show sweet alert for other options
+      openModal('sweetAlert', {
+        type: 'info',
+        title: 'Feature Coming Soon',
+        message: `Creating ${option} is under development and will be available soon.`,
+        confirmText: 'OK'
+      } as SweetAlertData);
+    }
+  }, [openModal]);
 
   const handleUploadSelect = useCallback((option: UploadOption) => {
     console.log('Upload option selected:', option);
-    // Placeholder: Open upload modal/workflow
-  }, []);
+    if (option === 'file') {
+      openModal('uploadFile');
+    } else if (option === 'folder') {
+      openModal('uploadFolder');
+    } else {
+      // Show sweet alert for cloud/url options
+      openModal('sweetAlert', {
+        type: 'info',
+        title: 'Feature Coming Soon',
+        message: `Upload from ${option} is under development and will be available soon.`,
+        confirmText: 'OK'
+      } as SweetAlertData);
+    }
+  }, [openModal]);
 
   const handleFilterChange = useCallback((filter: FilterOption) => {
     console.log('Filter changed:', filter);
@@ -66,13 +97,52 @@ export function LibraryPage() {
   }, [selectedItems]);
 
   const handleDelete = useCallback(() => {
-    // Placeholder: Show delete confirmation modal
-    const confirmed = confirm(`Are you sure you want to delete ${selectedItems.length} item(s)?`);
-    if (confirmed) {
-      console.log('Delete items:', selectedItems);
-      clearSelection();
-    }
-  }, [selectedItems, clearSelection]);
+    // Open delete confirmation modal
+    const mockItemNames = selectedItems.map(id => {
+      switch(id) {
+        case 'item1': return 'Recent Papers';
+        case 'item2': return 'Collections';
+        case 'item3': return 'Bookmarks';
+        default: return `Item ${id}`;
+      }
+    });
+    
+    const deleteData: DeleteConfirmData = {
+      itemIds: selectedItems,
+      itemNames: mockItemNames,
+      itemCount: selectedItems.length
+    };
+    
+    openModal('deleteConfirm', deleteData);
+  }, [selectedItems, openModal]);
+
+  // Modal handlers
+  const handleCreateFolder = useCallback((data: CreateFolderData) => {
+    console.log('Creating folder:', data);
+    // Placeholder: Create folder logic
+    openModal('sweetAlert', {
+      type: 'success',
+      title: 'Folder Created',
+      message: `Folder "${data.name}" has been created successfully.`,
+      confirmText: 'OK'
+    } as SweetAlertData);
+  }, [openModal]);
+
+  const handleUploadComplete = useCallback((files: File[]) => {
+    console.log('Upload completed:', files);
+    // Placeholder: Handle uploaded files
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
+    console.log('Delete confirmed for items:', selectedItems);
+    clearSelection();
+    openModal('sweetAlert', {
+      type: 'success',
+      title: 'Items Deleted',
+      message: 'Selected items have been deleted successfully.',
+      confirmText: 'OK'
+    } as SweetAlertData);
+  }, [selectedItems, clearSelection, openModal]);
 
   return (
     <div className="space-y-6 p-6">
@@ -170,6 +240,37 @@ export function LibraryPage() {
           </p>
         </div>
       </div>
+
+      {/* Modal Components */}
+      <CreateFolderModal
+        isOpen={modalState.isOpen && modalState.type === 'createFolder'}
+        onClose={closeModal}
+        onConfirm={handleCreateFolder}
+      />
+
+      <UploadModal
+        isOpen={modalState.isOpen && (modalState.type === 'uploadFile' || modalState.type === 'uploadFolder')}
+        type={modalState.type === 'uploadFile' ? 'file' : 'folder'}
+        onClose={closeModal}
+        onComplete={handleUploadComplete}
+      />
+
+      {modalState.isOpen && modalState.type === 'deleteConfirm' && modalState.data && (
+        <DeleteConfirmModal
+          isOpen={true}
+          data={modalState.data as DeleteConfirmData}
+          onClose={closeModal}
+          onConfirm={handleDeleteConfirm}
+        />
+      )}
+
+      {modalState.isOpen && modalState.type === 'sweetAlert' && modalState.data && (
+        <SweetAlert
+          isOpen={true}
+          data={modalState.data as SweetAlertData}
+          onClose={closeModal}
+        />
+      )}
     </div>
   );
 }
