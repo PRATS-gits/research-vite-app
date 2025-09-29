@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Link, useLocation } from "react-router-dom";
 
 import { NavUser } from "@/components/nav-user";
 import {
@@ -16,68 +17,54 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import {
-  RiSlowDownLine,
-  RiLeafLine,
-  RiNavigationLine,
-  RiSpeakLine,
-  RiCodeSSlashLine,
-  RiGeminiLine,
-  RiLinksLine,
-  RiDatabase2Line,
-} from "@remixicon/react";
+  Home,
+  Library,
+  Bot,
+  Link as LinkIcon,
+  Activity,
+  Settings,
+} from "lucide-react";
 
-// This is sample data.
+// Research Space navigation data
 const data = {
   user: {
-    name: "Mark Bannert",
-    email: "mark@bannert.com",
-    avatar:
-      "https://raw.githubusercontent.com/origin-space/origin-images/refs/heads/main/exp3/user_itiiaq.png",
+    name: "Research User",
+    email: "researcher@university.edu",
+    avatar: "/placeholder-avatar.jpg",
   },
   navMain: [
     {
-      title: "General",
+      title: "Research Space",
       items: [
         {
-          title: "Dashboard",
-          url: "#",
-          icon: RiSlowDownLine,
-          isActive: true,
+          title: "Home",
+          url: "/",
+          icon: Home,
         },
         {
-          title: "Transactions",
-          url: "#",
-          icon: RiLeafLine,
+          title: "Library",
+          url: "/library",
+          icon: Library,
         },
         {
-          title: "Metrics",
-          url: "#",
-          icon: RiNavigationLine,
+          title: "Agents",
+          url: "/agents",
+          icon: Bot,
         },
         {
-          title: "Security",
-          url: "#",
-          icon: RiSpeakLine,
+          title: "Connections",
+          url: "/connections",
+          icon: LinkIcon,
         },
         {
-          title: "API",
-          url: "#",
-          icon: RiCodeSSlashLine,
+          title: "Status",
+          url: "/status",
+          icon: Activity,
         },
         {
-          title: "Quick Setup",
-          url: "#",
-          icon: RiGeminiLine,
-        },
-        {
-          title: "Payment Links",
-          url: "#",
-          icon: RiLinksLine,
-        },
-        {
-          title: "Archive",
-          url: "#",
-          icon: RiDatabase2Line,
+          title: "Settings",
+          url: "/settings",
+          icon: Settings,
         },
       ],
     },
@@ -123,6 +110,8 @@ function SidebarLogo() {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const location = useLocation();
+  
   return (
     <Sidebar collapsible="icon" variant="inset" {...props}>
       <SidebarHeader className="h-16 max-md:mt-2 mb-2 justify-center">
@@ -136,27 +125,30 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {item.items.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <SidebarMenuButton
-                      asChild
-                      className="group/menu-button group-data-[collapsible=icon]:px-[5px]! font-medium gap-3 h-9 [&>svg]:size-auto"
-                      tooltip={item.title}
-                      isActive={item.isActive}
-                    >
-                      <a href={item.url}>
-                        {item.icon && (
-                          <item.icon
-                            className="text-muted-foreground/65 group-data-[active=true]/menu-button:text-primary"
-                            size={22}
-                            aria-hidden="true"
-                          />
-                        )}
-                        <span>{item.title}</span>
-                      </a>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                ))}
+                {item.items.map((navItem) => {
+                  const isActive = location.pathname === navItem.url;
+                  return (
+                    <SidebarMenuItem key={navItem.title}>
+                      <SidebarMenuButton
+                        asChild
+                        className="group/menu-button group-data-[collapsible=icon]:px-[5px]! font-medium gap-3 h-9 [&>svg]:size-auto"
+                        tooltip={navItem.title}
+                        isActive={isActive}
+                      >
+                        <Link to={navItem.url}>
+                          {navItem.icon && (
+                            <navItem.icon
+                              className="text-muted-foreground/65 group-data-[active=true]/menu-button:text-primary"
+                              size={22}
+                              aria-hidden="true"
+                            />
+                          )}
+                          <span>{navItem.title}</span>
+                        </Link>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  );
+                })}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>

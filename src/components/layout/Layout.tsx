@@ -1,20 +1,18 @@
-import * as React from "react";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Navbar } from "./Navbar";
 import { PageContent } from "./PageContent";
+import { Outlet } from "react-router-dom";
 
-interface LayoutProps {
-  children: React.ReactNode;
-}
-
-export function Layout({ children }: LayoutProps) {
+export function Layout() {
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
         <Navbar />
-        <PageContent>{children}</PageContent>
+        <PageContent>
+          <Outlet />
+        </PageContent>
       </SidebarInset>
     </SidebarProvider>
   );
