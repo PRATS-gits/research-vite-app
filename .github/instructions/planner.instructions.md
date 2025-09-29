@@ -191,4 +191,4 @@ Each phase must include these exact subsections in order:
 - Report deviations from established standards
 - Initiate corrective actions for project delays
 </content>
-<parameter name="filePath">/home/prats/Playground/Internships/IISPPR/research-next-app/.github/instructions/frontend.instructions.md
+<parameter name="filePath">.github/instructions/planner.instructions.md</parameter>

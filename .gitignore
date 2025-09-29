@@ -13,7 +13,7 @@ dist-ssr
 *.local
 
 # GitHub
-.gitHub
+.github/
 
 # Environment files
 .env
