@@ -15,6 +15,15 @@ dist-ssr
 # GitHub
 .gitHub
 
+# Environment files
+.env
+.env.*.local
+!.env.example   
+# Local build files
+.vitepress
+.vitepress/dist
+out
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
