@@ -47,6 +47,7 @@ a) **Connections Page** serves as the heart of the Library Page on which all the
 b) Connections Page will provide S3, R2 compatible bucket configuration and setup for Library Page to point to that specific bucket from which major operations are going to be performed.<br>
 c) Google Drive and OneDrive connections will also be served and configured via the Connections Page. But for development purposes it'll be future implementation.
 
+
 ## Agents Page (/agents)
 a) **Agents Page** will be configured in the future.
 
