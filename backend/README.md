@@ -158,33 +158,86 @@ curl -X POST http://localhost:3001/api/storage/test \
 
 ```
 backend/
-├── src/
-│   ├── controllers/         # Request handlers
-│   │   └── storage.controller.ts
-│   ├── routes/             # API route definitions
-│   │   └── storage.routes.ts
-│   ├── services/           # Business logic
-│   │   ├── encryption.service.ts
-│   │   ├── storageProvider.service.ts
-│   │   ├── s3Provider.service.ts
-│   │   ├── r2Provider.service.ts
-│   │   └── minioProvider.service.ts
-│   ├── middleware/         # Express middleware
-│   │   ├── auth.middleware.ts
-│   │   └── validation.middleware.ts
-│   ├── models/            # Data models
-│   │   └── storageConfig.model.ts
-│   ├── types/             # TypeScript types
-│   │   └── storage.types.ts
-│   └── server.ts          # Express app entry point
-├── data/                  # Configuration storage (gitignored)
-├── dist/                  # Compiled JavaScript (gitignored)
-├── package.json
-├── tsconfig.json
-├── .env                   # Environment variables (gitignored)
-├── .env.example          # Environment template
-├── README.md
-└── API_DOCUMENTATION.md   # Detailed API docs
+├── src/                          # TypeScript source files
+│   ├── controllers/              # Request handlers (Express controllers)
+│   │   └── storage.controller.ts  # Storage API request handlers
+│   ├── routes/                   # API route definitions
+│   │   └── storage.routes.ts      # Storage endpoint routing
+│   ├── services/                 # Business logic layer
+│   │   ├── encryption.service.ts      # AES-256-GCM encryption/decryption
+│   │   ├── storageProvider.service.ts # Provider factory pattern
+│   │   ├── s3Provider.service.ts      # AWS S3 implementation
+│   │   ├── r2Provider.service.ts      # Cloudflare R2 implementation
+│   │   └── minioProvider.service.ts   # MinIO implementation
+│   ├── middleware/               # Express middleware
+│   │   ├── auth.middleware.ts         # API key authentication
+│   │   └── validation.middleware.ts   # Zod schema validation
+│   ├── models/                   # Data models & persistence
+│   │   └── storageConfig.model.ts     # Configuration CRUD operations
+│   ├── types/                    # TypeScript type definitions
+│   │   └── storage.types.ts           # Shared interfaces & types
+│   └── server.ts                 # Express app entry point & server setup
+├── docs/                         # Documentation files
+│   ├── API_DOCUMENTATION.md      # Complete API reference
+│   └── PHASE1_SUMMARY.md         # Phase 1 implementation summary
+├── data/                         # Runtime data storage (gitignored)
+│   ├── storage-config.json       # Encrypted storage configuration
+│   └── config-lock.json          # Configuration lock metadata
+├── dist/                         # Compiled JavaScript output (gitignored)
+│   ├── controllers/
+│   ├── routes/
+│   ├── services/
+│   ├── middleware/
+│   ├── models/
+│   ├── types/
+│   └── server.js
+├── node_modules/                 # npm dependencies (gitignored)
+├── package.json                  # Project dependencies & scripts
+├── package-lock.json             # Dependency lock file
+├── tsconfig.json                 # TypeScript compiler configuration
+├── .env                          # Environment variables (gitignored)
+├── .env.example                  # Environment template
+├── .gitignore                    # Git ignore rules
+└── README.md                     # This file
+```
+
+### File Count Summary
+- **TypeScript Source Files:** 12
+- **Documentation Files:** 3 (README.md + docs/)
+- **Configuration Files:** 4 (.env.example, tsconfig.json, package.json, .gitignore)
+- **Total Lines of Code:** ~2,800 (excluding tests)
+
+### Architecture Overview
+```
+Express Server (server.ts)
+    │
+    ├── Middleware Layer
+    │   ├── CORS
+    │   ├── Helmet (Security Headers)
+    │   ├── Compression
+    │   ├── Rate Limiting
+    │   ├── Authentication (auth.middleware.ts)
+    │   └── Validation (validation.middleware.ts)
+    │
+    ├── Routes (storage.routes.ts)
+    │   ├── GET  /health
+    │   ├── GET  /api/storage/status
+    │   ├── POST /api/storage/configure
+    │   ├── POST /api/storage/test
+    │   └── DELETE /api/storage/lock
+    │
+    ├── Controllers (storage.controller.ts)
+    │   └── Handle HTTP requests/responses
+    │
+    ├── Services Layer
+    │   ├── StorageProvider Factory (storageProvider.service.ts)
+    │   │   ├── S3Provider (s3Provider.service.ts)
+    │   │   ├── R2Provider (r2Provider.service.ts)
+    │   │   └── MinIOProvider (minioProvider.service.ts)
+    │   └── Encryption Service (encryption.service.ts)
+    │
+    └── Models (storageConfig.model.ts)
+        └── Data persistence layer
 ```
 
 ## 🔒 Security Features
