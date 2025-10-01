@@ -37,3 +37,11 @@ out
 *.njsproj
 *.sln
 *.sw?
+
+# Backend files
+backend/node_modules
+backend/dist
+backend/.env
+backend/.env.*.local
+backend/data
+backend/*.log
