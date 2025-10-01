@@ -15,6 +15,9 @@ dist-ssr
 # GitHub
 .github/
 
+# Critical Documents
+docs/history
+
 # Environment files
 .env
 .env.*.local
