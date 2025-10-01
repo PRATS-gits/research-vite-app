@@ -7,14 +7,18 @@ import {
   S3Client, 
   HeadBucketCommand, 
   PutObjectCommand,
+  GetObjectCommand,
   DeleteObjectCommand,
   GetBucketCorsCommand,
   CreateMultipartUploadCommand,
-  AbortMultipartUploadCommand
+  AbortMultipartUploadCommand,
+  HeadObjectCommand
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { StorageCredentials, StorageProvider, StorageTestResult } from '../types/storage.types.js';
+import type { FileOperations } from '../types/files.types.js';
 
-export class S3Provider implements StorageProvider {
+export class S3Provider implements StorageProvider, FileOperations {
   private client: S3Client;
   private credentials: StorageCredentials;
 
@@ -157,5 +161,96 @@ export class S3Provider implements StorageProvider {
       name: this.credentials.bucket,
       region: this.credentials.region
     };
+  }
+
+  /**
+   * Upload file to S3
+   */
+  async uploadFile(key: string, body: Buffer, contentType: string): Promise<void> {
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType
+    }));
+  }
+
+  /**
+   * Download file from S3
+   */
+  async downloadFile(key: string): Promise<Buffer> {
+    const response = await this.client.send(new GetObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key
+    }));
+    
+    if (!response.Body) {
+      throw new Error('File not found');
+    }
+    
+    return Buffer.from(await response.Body.transformToByteArray());
+  }
+
+  /**
+   * Delete file from S3
+   */
+  async deleteFile(key: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key
+    }));
+  }
+
+  /**
+   * Generate presigned upload URL
+   */
+  async generatePresignedUploadUrl(key: string, contentType: string, expiresIn: number): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      ContentType: contentType
+    });
+    
+    return getSignedUrl(this.client, command, { expiresIn });
+  }
+
+  /**
+   * Generate presigned download URL
+   */
+  async generatePresignedDownloadUrl(key: string, fileName: string, expiresIn: number): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      ResponseContentDisposition: `attachment; filename="${fileName}"`
+    });
+    
+    return getSignedUrl(this.client, command, { expiresIn });
+  }
+
+  /**
+   * Check if file exists
+   */
+  async fileExists(key: string): Promise<boolean> {
+    try {
+      await this.client.send(new HeadObjectCommand({
+        Bucket: this.credentials.bucket,
+        Key: key
+      }));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Get file size
+   */
+  async getFileSize(key: string): Promise<number> {
+    const response = await this.client.send(new HeadObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key
+    }));
+    
+    return response.ContentLength || 0;
   }
 }

@@ -10,6 +10,8 @@ import compression from 'compression';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import storageRoutes from './routes/storage.routes.js';
+import filesRoutes from './routes/files.routes.js';
+import foldersRoutes from './routes/folders.routes.js';
 import type { ApiResponse } from './types/storage.types.js';
 
 // Load environment variables
@@ -85,6 +87,8 @@ app.get('/health', (_req: Request, res: Response) => {
 
 // API routes
 app.use('/api/storage', storageRoutes);
+app.use('/api/files', filesRoutes);
+app.use('/api/folders', foldersRoutes);
 
 // Root endpoint
 app.get('/', (_req: Request, res: Response) => {
@@ -95,7 +99,9 @@ app.get('/', (_req: Request, res: Response) => {
       version: '1.0.0',
       endpoints: {
         health: '/health',
-        storage: '/api/storage'
+        storage: '/api/storage',
+        files: '/api/files',
+        folders: '/api/folders'
       }
     },
     timestamp: new Date()
