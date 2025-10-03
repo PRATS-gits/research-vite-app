@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useLibraryStore } from '@/store/libraryStore';
 import type { FolderPath } from '@/types/library';
 
@@ -11,15 +12,11 @@ import type { FolderPath } from '@/types/library';
  * - Performance optimized with useCallback
  */
 export function useLibraryNavigation() {
+  const navigate = useNavigate();
   // Get navigation state from store
   const currentFolderId = useLibraryStore((state) => state.currentFolderId);
   const folderPath = useLibraryStore((state) => state.folderPath);
   const items = useLibraryStore((state) => state.items);
-  
-  // Get navigation actions from store
-  const navigateToFolder = useLibraryStore((state) => state.navigateToFolder);
-  const navigateBack = useLibraryStore((state) => state.navigateBack);
-  const navigateToRoot = useLibraryStore((state) => state.navigateToRoot);
   
   // Get current folder item
   const currentFolder = currentFolderId ? items[currentFolderId] : null;
@@ -29,31 +26,39 @@ export function useLibraryNavigation() {
   
   // Navigate to folder by ID
   const goToFolder = useCallback((folderId: string | null) => {
-    navigateToFolder(folderId);
-  }, [navigateToFolder]);
+    navigate(folderId ? `/library/folders/${folderId}` : '/library');
+  }, [navigate]);
   
   // Navigate back to parent folder
   const goBack = useCallback(() => {
     if (canNavigateBack) {
-      navigateBack();
+      const parentPath = folderPath.slice(0, -1);
+      const parentId = parentPath.length > 0 ? parentPath[parentPath.length - 1].id : null;
+      navigate(parentId ? `/library/folders/${parentId}` : '/library');
     }
-  }, [canNavigateBack, navigateBack]);
+  }, [canNavigateBack, folderPath, navigate]);
   
   // Navigate to root (My Library)
   const goToRoot = useCallback(() => {
-    navigateToRoot();
-  }, [navigateToRoot]);
+    navigate('/library');
+  }, [navigate]);
   
   // Navigate to specific breadcrumb path item
   const navigateToBreadcrumb = useCallback((pathItem: FolderPath) => {
-    navigateToFolder(pathItem.id);
-  }, [navigateToFolder]);
+    navigate(pathItem.id ? `/library/folders/${pathItem.id}` : '/library');
+  }, [navigate]);
   
   // Get folder display name
   const getFolderName = useCallback(() => {
     if (!currentFolderId) return 'My Library';
+    // Get name from breadcrumb path (most reliable for nested folders)
+    const lastPathItem = folderPath[folderPath.length - 1];
+    if (lastPathItem && lastPathItem.id === currentFolderId) {
+      return lastPathItem.name;
+    }
+    // Fallback to item lookup (for root-level folders before breadcrumb loads)
     return currentFolder?.name || 'Unknown Folder';
-  }, [currentFolderId, currentFolder]);
+  }, [currentFolderId, currentFolder, folderPath]);
   
   return {
     // State

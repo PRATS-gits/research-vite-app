@@ -52,11 +52,18 @@ export interface CreateFolderModalProps {
   onConfirm: (data: CreateFolderData) => void;
 }
 
+export interface UploadCompletionSummary {
+  files: File[];
+  successful: number;
+  failed: number;
+  errors: string[];
+}
+
 export interface UploadModalProps {
   isOpen: boolean;
   type: 'file' | 'folder';
   onClose: () => void;
-  onComplete: (files: File[]) => void;
+  onComplete: (summary: UploadCompletionSummary) => void;
 }
 
 export interface UploadStepsProps {

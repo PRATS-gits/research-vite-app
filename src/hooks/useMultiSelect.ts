@@ -75,7 +75,7 @@ export function useMultiSelect() {
   }, [selectedItemIds]);
   
   // Toggle single item selection
-  const toggleItemSelection = useCallback((itemId: string, isShiftClick: boolean = false) => {
+  const toggleItemSelection = useCallback((itemId: string, _isShiftClick: boolean = false) => {
     if (isItemSelected(itemId)) {
       deselectItem(itemId);
       // Exit selection mode if no items selected
@@ -83,7 +83,7 @@ export function useMultiSelect() {
         setSelectionMode(false);
       }
     } else {
-      selectItem(itemId, isShiftClick);
+      selectItem(itemId);
     }
   }, [isItemSelected, selectItem, deselectItem, selectedItemIds.length, setSelectionMode]);
   

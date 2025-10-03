@@ -22,6 +22,10 @@ export const routes: RouteObject[] = [
         element: <LibraryPage />,
       },
       {
+        path: 'library/folders/:folderId',
+        element: <LibraryPage />,
+      },
+      {
         path: 'agents',
         element: <AgentsPage />,
       },

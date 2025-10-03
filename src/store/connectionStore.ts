@@ -53,6 +53,7 @@ interface ConnectionStore {
   setFormErrors: (errors: Record<string, string>) => void;
   testConnection: () => Promise<void>;
   submitConfiguration: () => Promise<void>;
+  performConfiguration: () => Promise<void>;
   openLockWarning: (data: LockWarningData) => void;
   closeLockWarning: () => void;
   openAdminUnlock: () => void;

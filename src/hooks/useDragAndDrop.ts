@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { useLibraryStore } from '@/store/libraryStore';
 import type { DragStartEvent, DragEndEvent, DragOverEvent } from '@dnd-kit/core';
 import type { LibraryItem } from '@/types/library';
@@ -13,14 +13,13 @@ import type { LibraryItem } from '@/types/library';
  * - Performance optimized with useCallback
  */
 export function useDragAndDrop() {
-  // Get drag state from store
-  const isDragging = useLibraryStore((state) => state.isDragging);
-  const draggedItemId = useLibraryStore((state) => state.draggedItemId);
-  const items = useLibraryStore((state) => state.items);
+  // Local drag state (store doesn't have these properties)
+  const [isDragging, setIsDragging] = useState(false);
+  const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
   
-  // Get drag actions from store
-  const setDragging = useLibraryStore((state) => state.setDragging);
-  const moveItems = useLibraryStore((state) => state.moveItems);
+  // Get items and bulkMove from store
+  const items = useLibraryStore((state) => state.items);
+  const bulkMove = useLibraryStore((state) => state.bulkMove);
   
   /**
    * Handle drag start event
@@ -31,8 +30,9 @@ export function useDragAndDrop() {
     const itemId = active.id as string;
     
     console.log('Drag started:', itemId);
-    setDragging(true, itemId);
-  }, [setDragging]);
+    setIsDragging(true);
+    setDraggedItemId(itemId);
+  }, []);
   
   /**
    * Handle drag over event
@@ -57,7 +57,8 @@ export function useDragAndDrop() {
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event;
     
-    setDragging(false, null);
+    setIsDragging(false);
+    setDraggedItemId(null);
     
     if (!over) {
       console.log('Drag cancelled - no drop target');
@@ -97,9 +98,9 @@ export function useDragAndDrop() {
     
     // Perform the move
     console.log('Moving item:', { from: draggedItem.name, to: targetItem.name });
-    moveItems([activeId], targetItem.id);
+    bulkMove([activeId], targetItem.id).catch(console.error);
     
-  }, [items, setDragging, moveItems]);
+  }, [items, bulkMove]);
   
   /**
    * Handle drag cancel event
@@ -107,8 +108,9 @@ export function useDragAndDrop() {
    */
   const handleDragCancel = useCallback(() => {
     console.log('Drag cancelled');
-    setDragging(false, null);
-  }, [setDragging]);
+    setIsDragging(false);
+    setDraggedItemId(null);
+  }, []);
   
   /**
    * Check if a folder is a descendant of another folder

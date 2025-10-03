@@ -3,11 +3,13 @@
  * TypeScript interfaces for S3 storage provider configuration and connection management
  */
 
-export enum StorageProvider {
-  AWS_S3 = 'aws-s3',
-  CLOUDFLARE_R2 = 'cloudflare-r2',
-  MINIO = 'minio',
-}
+export const StorageProvider = {
+  AWS_S3: 'aws-s3',
+  CLOUDFLARE_R2: 'cloudflare-r2',
+  MINIO: 'minio',
+} as const;
+
+export type StorageProvider = typeof StorageProvider[keyof typeof StorageProvider];
 
 export interface StorageCredentials {
   accessKeyId: string;

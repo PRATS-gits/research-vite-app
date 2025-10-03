@@ -39,7 +39,12 @@ export class FilesController {
         timestamp: new Date()
       } as ApiResponse<PresignedUrlResponse>);
     } catch (error) {
-      console.error('Get presigned upload URL error:', error);
+      console.error('Get presigned upload URL error:', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+        requestBody: req.body,
+        timestamp: new Date().toISOString()
+      });
       res.status(500).json({
         success: false,
         error: error instanceof Error ? error.message : 'Internal server error',

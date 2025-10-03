@@ -189,11 +189,11 @@ export class FolderModel {
 
   static async getBreadcrumb(folderId: string | null): Promise<BreadcrumbItem[]> {
     if (!folderId) {
-      return [{ id: 'root', name: 'Home', path: '/' }];
+      return [];
     }
 
     const folders = await this.readFolders();
-    const breadcrumb: BreadcrumbItem[] = [{ id: 'root', name: 'Home', path: '/' }];
+    const breadcrumb: BreadcrumbItem[] = [];
 
     let currentId: string | null = folderId;
     const visited = new Set<string>();
@@ -209,7 +209,7 @@ export class FolderModel {
         break;
       }
 
-      breadcrumb.push({
+      breadcrumb.unshift({
         id: folder.id,
         name: folder.name,
         path: folder.path
@@ -218,7 +218,7 @@ export class FolderModel {
       currentId = folder.parentId;
     }
 
-    return breadcrumb.reverse();
+    return breadcrumb;
   }
 
   static async getHierarchy(): Promise<Folder[]> {

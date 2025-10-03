@@ -36,7 +36,7 @@ export class PresignedUrlService {
     const s3Key = `${folderPrefix}${timestamp}-${sanitizedFileName}`;
 
     // Get provider
-    const provider = StorageProviderFactory.createProvider(config.provider, credentials) as any;
+    const provider = StorageProviderFactory.createProvider(config.provider, credentials);
 
     // Generate presigned URL
     const expiresIn = request.expiresIn || 900; // 15 minutes default
@@ -83,7 +83,7 @@ export class PresignedUrlService {
     const credentials = encryptionService.decryptCredentials(config.credentials);
 
     // Get provider
-    const provider = StorageProviderFactory.createProvider(config.provider, credentials) as any;
+    const provider = StorageProviderFactory.createProvider(config.provider, credentials);
 
     // Generate presigned URL
     const expiresIn = request.expiresIn || 900; // 15 minutes default

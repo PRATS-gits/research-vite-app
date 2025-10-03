@@ -9,8 +9,10 @@ import {
   PutObjectCommand,
   DeleteObjectCommand,
   CreateMultipartUploadCommand,
-  AbortMultipartUploadCommand
+  AbortMultipartUploadCommand,
+  GetObjectCommand
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { StorageCredentials, StorageProvider, StorageTestResult } from '../types/storage.types.js';
 
 export class MinIOProvider implements StorageProvider {
@@ -142,5 +144,31 @@ export class MinIOProvider implements StorageProvider {
       name: this.credentials.bucket,
       region: this.credentials.region || 'us-east-1'
     };
+  }
+
+  /**
+   * Generate presigned upload URL for MinIO
+   */
+  async generatePresignedUploadUrl(key: string, contentType: string, expiresIn: number): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      ContentType: contentType
+    });
+    
+    return getSignedUrl(this.client, command, { expiresIn });
+  }
+
+  /**
+   * Generate presigned download URL for MinIO
+   */
+  async generatePresignedDownloadUrl(key: string, fileName: string, expiresIn: number): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      ResponseContentDisposition: `attachment; filename="${fileName}"`
+    });
+    
+    return getSignedUrl(this.client, command, { expiresIn });
   }
 }

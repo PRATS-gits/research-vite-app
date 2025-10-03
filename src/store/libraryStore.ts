@@ -1,327 +1,406 @@
-import { create } from 'zustand';
-import type {
-  LibraryStore,
-  LibraryItem,
-  FileItem,
-  FolderItem,
-  FolderPath
-} from '@/types/library';
+/**
+ * Library Store (Backend Integrated)
+ * Phase 5: S3 Integration - Simplified for critical path
+ * Replaces mock data with real backend API calls
+ */
 
-// Mock data generator
-function generateMockData(): Record<string, LibraryItem> {
-  const now = new Date();
-  const oneDay = 24 * 60 * 60 * 1000;
-  
-  const items: Record<string, LibraryItem> = {
-    // Root folders
-    'folder-1': {
-      id: 'folder-1',
-      type: 'folder',
-      name: 'Research Papers',
-      parentId: null,
-      itemCount: 5,
-      childrenIds: ['file-1', 'file-2', 'file-3', 'folder-4', 'folder-5'],
-      createdAt: new Date(now.getTime() - 30 * oneDay),
-      updatedAt: new Date(now.getTime() - 5 * oneDay),
-    },
-    'folder-2': {
-      id: 'folder-2',
-      type: 'folder',
-      name: 'Collections',
-      parentId: null,
-      itemCount: 3,
-      childrenIds: ['file-4', 'file-5', 'folder-6'],
-      createdAt: new Date(now.getTime() - 20 * oneDay),
-      updatedAt: new Date(now.getTime() - 3 * oneDay),
-    },
-    'folder-3': {
-      id: 'folder-3',
-      type: 'folder',
-      name: 'Resources',
-      parentId: null,
-      itemCount: 4,
-      childrenIds: ['file-6', 'file-7', 'file-8', 'file-9'],
-      createdAt: new Date(now.getTime() - 15 * oneDay),
-      updatedAt: new Date(now.getTime() - 1 * oneDay),
-    },
-    
-    // Files in Research Papers folder
-    'file-1': {
-      id: 'file-1',
-      type: 'file',
-      name: 'Machine Learning Fundamentals.pdf',
-      parentId: 'folder-1',
-      fileType: 'pdf',
-      size: 2457600, // 2.4 MB
-      extension: 'pdf',
-      createdAt: new Date(now.getTime() - 25 * oneDay),
-      updatedAt: new Date(now.getTime() - 10 * oneDay),
-    },
-    'file-2': {
-      id: 'file-2',
-      type: 'file',
-      name: 'Neural Networks Architecture.pdf',
-      parentId: 'folder-1',
-      fileType: 'pdf',
-      size: 3145728, // 3 MB
-      extension: 'pdf',
-      createdAt: new Date(now.getTime() - 20 * oneDay),
-      updatedAt: new Date(now.getTime() - 8 * oneDay),
-    },
-    'file-3': {
-      id: 'file-3',
-      type: 'file',
-      name: 'Deep Learning Research.pdf',
-      parentId: 'folder-1',
-      fileType: 'pdf',
-      size: 4194304, // 4 MB
-      extension: 'pdf',
-      createdAt: new Date(now.getTime() - 18 * oneDay),
-      updatedAt: new Date(now.getTime() - 6 * oneDay),
-    },
-    
-    // Nested folders in Research Papers
-    'folder-4': {
-      id: 'folder-4',
-      type: 'folder',
-      name: 'AI Papers 2024',
-      parentId: 'folder-1',
-      itemCount: 2,
-      childrenIds: ['file-10', 'file-11'],
-      createdAt: new Date(now.getTime() - 15 * oneDay),
-      updatedAt: new Date(now.getTime() - 4 * oneDay),
-    },
-    'folder-5': {
-      id: 'folder-5',
-      type: 'folder',
-      name: 'Computer Vision',
-      parentId: 'folder-1',
-      itemCount: 0,
-      childrenIds: [],
-      createdAt: new Date(now.getTime() - 10 * oneDay),
-      updatedAt: new Date(now.getTime() - 2 * oneDay),
-    },
-    
-    // Files in Collections folder
-    'file-4': {
-      id: 'file-4',
-      type: 'file',
-      name: 'Research Notes.docx',
-      parentId: 'folder-2',
-      fileType: 'document',
-      size: 512000, // 500 KB
-      extension: 'docx',
-      createdAt: new Date(now.getTime() - 12 * oneDay),
-      updatedAt: new Date(now.getTime() - 3 * oneDay),
-    },
-    'file-5': {
-      id: 'file-5',
-      type: 'file',
-      name: 'Dataset Analysis.txt',
-      parentId: 'folder-2',
-      fileType: 'document',
-      size: 102400, // 100 KB
-      extension: 'txt',
-      createdAt: new Date(now.getTime() - 10 * oneDay),
-      updatedAt: new Date(now.getTime() - 2 * oneDay),
-    },
-    
-    // Nested folder in Collections
-    'folder-6': {
-      id: 'folder-6',
-      type: 'folder',
-      name: 'Archived Studies',
-      parentId: 'folder-2',
-      itemCount: 0,
-      childrenIds: [],
-      createdAt: new Date(now.getTime() - 8 * oneDay),
-      updatedAt: new Date(now.getTime() - 1 * oneDay),
-    },
-    
-    // Files in Resources folder
-    'file-6': {
-      id: 'file-6',
-      type: 'file',
-      name: 'Chart Diagram.png',
-      parentId: 'folder-3',
-      fileType: 'image',
-      size: 1048576, // 1 MB
-      extension: 'png',
-      createdAt: new Date(now.getTime() - 7 * oneDay),
-      updatedAt: new Date(now.getTime() - 1 * oneDay),
-    },
-    'file-7': {
-      id: 'file-7',
-      type: 'file',
-      name: 'Neural Network Visualization.jpg',
-      parentId: 'folder-3',
-      fileType: 'image',
-      size: 819200, // 800 KB
-      extension: 'jpg',
-      createdAt: new Date(now.getTime() - 6 * oneDay),
-      updatedAt: new Date(now.getTime() - 1 * oneDay),
-    },
-    'file-8': {
-      id: 'file-8',
-      type: 'file',
-      name: 'Data Flow Diagram.svg',
-      parentId: 'folder-3',
-      fileType: 'image',
-      size: 256000, // 250 KB
-      extension: 'svg',
-      createdAt: new Date(now.getTime() - 5 * oneDay),
-      updatedAt: new Date(now.getTime() - 1 * oneDay),
-    },
-    'file-9': {
-      id: 'file-9',
-      type: 'file',
-      name: 'References.md',
-      parentId: 'folder-3',
-      fileType: 'document',
-      size: 51200, // 50 KB
-      extension: 'md',
-      createdAt: new Date(now.getTime() - 4 * oneDay),
-      updatedAt: new Date(now.getTime() - 1 * oneDay),
-    },
-    
-    // Files in nested AI Papers 2024 folder
-    'file-10': {
-      id: 'file-10',
-      type: 'file',
-      name: 'Transformer Architecture.pdf',
-      parentId: 'folder-4',
-      fileType: 'pdf',
-      size: 2621440, // 2.5 MB
-      extension: 'pdf',
-      createdAt: new Date(now.getTime() - 3 * oneDay),
-      updatedAt: new Date(now.getTime() - 1 * oneDay),
-    },
-    'file-11': {
-      id: 'file-11',
-      type: 'file',
-      name: 'Attention Mechanisms.pdf',
-      parentId: 'folder-4',
-      fileType: 'pdf',
-      size: 1835008, // 1.75 MB
-      extension: 'pdf',
-      createdAt: new Date(now.getTime() - 2 * oneDay),
-      updatedAt: new Date(now.getTime() - 1 * oneDay),
-    },
+import { create } from 'zustand';
+import {
+  listFiles,
+  updateFile,
+  deleteFile,
+  bulkDeleteFiles,
+  bulkMoveFiles,
+  createFolder as apiCreateFolder,
+  renameFolder as apiRenameFolder,
+  deleteFolder as apiDeleteFolder,
+  getFolderContents,
+  type FileMetadata,
+  type Folder,
+  type BreadcrumbItem,
+} from '@/api/filesApi';
+import type { LibraryItem } from '@/types/library';
+
+// Convert backend types to UI types
+function convertFileToLibraryItem(file: FileMetadata): LibraryItem {
+  const extension = file.name.split('.').pop() || '';
+  return {
+    id: file.id,
+    type: 'file',
+    name: file.name,
+    parentId: file.folderId,
+    fileType: getFileType(extension),
+    size: file.size,
+    extension,
+    createdAt: new Date(file.createdAt),
+    updatedAt: new Date(file.updatedAt),
   };
-  
-  return items;
 }
 
-// Create the Zustand store
-export const useLibraryStore = create<LibraryStore>((set, get) => ({
+function convertFolderToLibraryItem(folder: Folder, itemCount: number = 0, childrenIds: string[] = []): LibraryItem {
+  return {
+    id: folder.id,
+    type: 'folder',
+    name: folder.name,
+    parentId: folder.parentId,
+    itemCount,
+    childrenIds,
+    createdAt: new Date(folder.createdAt),
+    updatedAt: new Date(folder.updatedAt),
+  };
+}
+
+function getFileType(extension: string): 'pdf' | 'image' | 'document' | 'other' {
+  const ext = extension.toLowerCase();
+  if (ext === 'pdf') return 'pdf';
+  if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(ext)) return 'image';
+  if (['doc', 'docx', 'txt', 'md', 'rtf'].includes(ext)) return 'document';
+  return 'other';
+}
+
+export interface LibraryStoreState {
+  // Data
+  items: Record<string, LibraryItem>;
+  currentFolderId: string | null;
+  folderPath: BreadcrumbItem[];
+  
+  // Loading states
+  isLoading: boolean;
+  error: string | null;
+  
+  // Selection
+  selectedItemIds: string[];
+  isSelectionMode: boolean;
+  
+  // View settings
+  viewMode: 'grid' | 'list';
+  sortBy: 'name' | 'size' | 'createdAt' | 'date' | 'type';
+  sortOrder: 'asc' | 'desc';
+  filterBy: 'all' | 'files' | 'folders';
+  
+  // Actions
+  fetchFiles: (folderId?: string) => Promise<void>;
+  navigateToFolder: (folderId: string | null) => Promise<void>;
+  navigateBack: () => Promise<void>;
+  navigateToRoot: () => Promise<void>;
+  refreshCurrentFolder: () => Promise<void>;
+  
+  // File operations
+  renameFile: (fileId: string, newName: string) => Promise<void>;
+  deleteFile: (fileId: string) => Promise<void>;
+  bulkDelete: (fileIds: string[]) => Promise<void>;
+  bulkMove: (fileIds: string[], targetFolderId: string | null) => Promise<void>;
+  
+  // Folder operations
+  createFolder: (name: string, parentId?: string) => Promise<Folder>;
+  renameFolder: (folderId: string, newName: string) => Promise<void>;
+  deleteFolder: (folderId: string) => Promise<void>;
+  
+  // Selection
+  selectItem: (itemId: string) => void;
+  deselectItem: (itemId: string) => void;
+  toggleSelectAll: () => void;
+  clearSelection: () => void;
+  setSelectionMode: (enabled: boolean) => void;
+  
+  // View
+  setViewMode: (mode: 'grid' | 'list') => void;
+  setSortBy: (sortBy: 'name' | 'size' | 'createdAt', sortOrder?: 'asc' | 'desc') => void;
+  setFilterBy: (filter: 'all' | 'files' | 'folders') => void;
+  
+  // Backward compatibility
+  uploadFiles: (files: File[], folderId: string | null) => Promise<void>;
+  deleteItems: (itemIds: string[]) => Promise<void>;
+  renameItem: (itemId: string, newName: string) => Promise<void>;
+  
+  // Getters
+  getVisibleItems: () => LibraryItem[];
+  isAllSelected: () => boolean;
+  isSomeSelected: () => boolean;
+}
+
+export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
   // Initial state
-  items: generateMockData(),
-  currentFolderId: null, // Start at root
+  items: {},
+  currentFolderId: null,
   folderPath: [],
+  isLoading: false,
+  error: null,
   selectedItemIds: [],
-  lastSelectedIndex: null,
   isSelectionMode: false,
   viewMode: 'grid',
   sortBy: 'name',
   sortOrder: 'asc',
   filterBy: 'all',
-  isDragging: false,
-  draggedItemId: null,
   
-  // Navigation actions
-  navigateToFolder: (folderId: string | null) => {
-    const state = get();
+  // Fetch files and folders
+  fetchFiles: async (folderId?: string) => {
+    set({ isLoading: true, error: null });
     
-    if (folderId === state.currentFolderId) return;
-    
-    let newPath: FolderPath[] = [];
-    
-    if (folderId !== null) {
-      const folder = state.items[folderId];
-      if (!folder || folder.type !== 'folder') return;
+    try {
+      const state = get();
+      // Map UI sortBy values to backend API values
+      const apiSortBy = state.sortBy === 'createdAt' || state.sortBy === 'date' 
+        ? 'createdAt' as const
+        : state.sortBy === 'name'
+        ? 'name' as const
+        : 'size' as const;
       
-      // Build path from root to current folder
-      newPath = [{ id: folderId, name: folder.name }];
-      let currentParentId = folder.parentId;
+      const response = await listFiles({
+        folderId: folderId || undefined,
+        limit: 50,
+        sortBy: apiSortBy,
+        sortOrder: state.sortOrder,
+      });
       
-      while (currentParentId !== null) {
-        const parentFolder = state.items[currentParentId];
-        if (parentFolder && parentFolder.type === 'folder') {
-          newPath.unshift({ id: currentParentId, name: parentFolder.name });
-          currentParentId = parentFolder.parentId;
-        } else {
-          break;
-        }
-      }
+      // Convert to library items
+      const items: Record<string, LibraryItem> = {};
+      
+      response.files.forEach((file) => {
+        items[file.id] = convertFileToLibraryItem(file);
+      });
+      
+      response.folders.forEach((folder) => {
+        items[folder.id] = convertFolderToLibraryItem(folder);
+      });
+      
+      set({ items, isLoading: false });
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch files';
+      set({ error: errorMessage, isLoading: false });
+      throw error;
     }
-    
-    set({
-      currentFolderId: folderId,
-      folderPath: newPath,
-      selectedItemIds: [],
-      isSelectionMode: false,
-    });
   },
   
-  navigateBack: () => {
+  // Navigate to folder
+  navigateToFolder: async (folderId: string | null) => {
+    const state = get();
+    if (folderId === state.currentFolderId) return;
+    
+    set({ isLoading: true, error: null, currentFolderId: folderId });
+    
+    try {
+      if (folderId) {
+        // Get folder contents with breadcrumb
+        const contents = await getFolderContents(folderId);
+        
+        const items: Record<string, LibraryItem> = {};
+        
+        contents.files.forEach((file) => {
+          items[file.id] = convertFileToLibraryItem(file);
+        });
+        
+        contents.subfolders.forEach((folder) => {
+          items[folder.id] = convertFolderToLibraryItem(folder);
+        });
+        
+        set({
+          items,
+          folderPath: contents.breadcrumb,
+          selectedItemIds: [],
+          isSelectionMode: false,
+          isLoading: false,
+        });
+      } else {
+        // Root folder
+        await get().fetchFiles();
+        set({ folderPath: [], selectedItemIds: [], isSelectionMode: false });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Navigation failed';
+      set({ error: errorMessage, isLoading: false });
+      throw error;
+    }
+  },
+  
+  // Navigate back
+  navigateBack: async () => {
     const state = get();
     if (state.folderPath.length === 0) return;
     
     const parentPath = state.folderPath.slice(0, -1);
     const parentId = parentPath.length > 0 ? parentPath[parentPath.length - 1].id : null;
     
-    get().navigateToFolder(parentId);
+    await get().navigateToFolder(parentId);
   },
   
-  navigateToRoot: () => {
-    get().navigateToFolder(null);
+  // Navigate to root
+  navigateToRoot: async () => {
+    await get().navigateToFolder(null);
+  },
+  
+  // Refresh current folder
+  refreshCurrentFolder: async () => {
+    const state = get();
+    const folderId = state.currentFolderId;
+    
+    // Force re-fetch without full navigation to preserve URL
+    try {
+      set({ isLoading: true, error: null });
+      
+      if (folderId) {
+        const contents = await getFolderContents(folderId);
+        
+        const items: Record<string, LibraryItem> = {};
+        
+        contents.files.forEach((file) => {
+          items[file.id] = convertFileToLibraryItem(file);
+        });
+        
+        contents.subfolders.forEach((folder) => {
+          items[folder.id] = convertFolderToLibraryItem(folder);
+        });
+        
+        set({
+          items,
+          isLoading: false,
+        });
+      } else {
+        // Root folder refresh
+        const apiSortBy = state.sortBy === 'createdAt' || state.sortBy === 'date' 
+          ? 'createdAt' as const
+          : state.sortBy === 'name'
+          ? 'name' as const
+          : 'size' as const;
+        
+        const response = await listFiles({
+          limit: 50,
+          sortBy: apiSortBy,
+          sortOrder: state.sortOrder,
+        });
+        
+        const items: Record<string, LibraryItem> = {};
+        
+        response.files.forEach((file) => {
+          items[file.id] = convertFileToLibraryItem(file);
+        });
+        
+        response.folders.forEach((folder) => {
+          items[folder.id] = convertFolderToLibraryItem(folder);
+        });
+        
+        set({ items, isLoading: false });
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to refresh';
+      set({ error: errorMessage, isLoading: false });
+      throw error;
+    }
+  },
+  
+  // Rename file
+  renameFile: async (fileId: string, newName: string) => {
+    await updateFile(fileId, { name: newName });
+    
+    // Update local state
+    set((state) => ({
+      items: {
+        ...state.items,
+        [fileId]: {
+          ...state.items[fileId],
+          name: newName,
+          updatedAt: new Date(),
+        },
+      },
+    }));
+  },
+  
+  // Delete file
+  deleteFile: async (fileId: string) => {
+    await deleteFile(fileId);
+    
+    // Remove from local state
+    set((state) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [fileId]: _removed, ...rest } = state.items;
+      return { items: rest };
+    });
+  },
+  
+  // Bulk delete
+  bulkDelete: async (fileIds: string[]) => {
+    await bulkDeleteFiles(fileIds);
+    
+    // Remove from local state
+    set((state) => {
+      const items = { ...state.items };
+      fileIds.forEach((id) => delete items[id]);
+      return { items, selectedItemIds: [] };
+    });
+  },
+  
+  // Bulk move
+  bulkMove: async (fileIds: string[], targetFolderId: string | null) => {
+    await bulkMoveFiles(fileIds, targetFolderId);
+    
+    // Refresh current folder
+    await get().refreshCurrentFolder();
+    set({ selectedItemIds: [] });
+  },
+  
+  // Create folder
+  createFolder: async (name: string, parentId?: string) => {
+    const folder = await apiCreateFolder(name, parentId);
+    
+    // Add to local state
+    const libraryItem = convertFolderToLibraryItem(folder);
+    set((state) => ({
+      items: {
+        ...state.items,
+        [folder.id]: libraryItem,
+      },
+    }));
+    
+    return folder;
+  },
+  
+  // Rename folder
+  renameFolder: async (folderId: string, newName: string) => {
+    await apiRenameFolder(folderId, newName);
+    
+    // Update local state
+    set((state) => ({
+      items: {
+        ...state.items,
+        [folderId]: {
+          ...state.items[folderId],
+          name: newName,
+          updatedAt: new Date(),
+        },
+      },
+    }));
+  },
+  
+  // Delete folder
+  deleteFolder: async (folderId: string) => {
+    await apiDeleteFolder(folderId);
+    
+    // Remove from local state
+    set((state) => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { [folderId]: _removed, ...rest } = state.items;
+      return { items: rest };
+    });
   },
   
   // Selection actions
-  selectItem: (itemId: string, isShiftClick: boolean = false) => {
-    const state = get();
-    
-    if (state.selectedItemIds.includes(itemId)) return;
-    
-    if (isShiftClick && state.lastSelectedIndex !== null) {
-      // Shift-click range selection
-      const visibleItems = get().getVisibleItems();
-      const currentIndex = visibleItems.findIndex(item => item.id === itemId);
-      
-      if (currentIndex !== -1) {
-        const start = Math.min(state.lastSelectedIndex, currentIndex);
-        const end = Math.max(state.lastSelectedIndex, currentIndex);
-        const rangeIds = visibleItems.slice(start, end + 1).map(item => item.id);
-        
-        set({
-          selectedItemIds: Array.from(new Set([...state.selectedItemIds, ...rangeIds])),
-          lastSelectedIndex: currentIndex,
-        });
-        return;
-      }
-    }
-    
-    // Normal single selection
-    const visibleItems = get().getVisibleItems();
-    const currentIndex = visibleItems.findIndex(item => item.id === itemId);
-    
-    set({
+  selectItem: (itemId: string) => {
+    set((state) => ({
       selectedItemIds: [...state.selectedItemIds, itemId],
-      lastSelectedIndex: currentIndex,
       isSelectionMode: true,
-    });
+    }));
   },
   
   deselectItem: (itemId: string) => {
     set((state) => ({
-      selectedItemIds: state.selectedItemIds.filter(id => id !== itemId),
+      selectedItemIds: state.selectedItemIds.filter((id) => id !== itemId),
     }));
   },
   
   toggleSelectAll: () => {
     const state = get();
     const visibleItems = get().getVisibleItems();
-    const visibleIds = visibleItems.map(item => item.id);
+    const visibleIds = visibleItems.map((item) => item.id);
     
     if (state.selectedItemIds.length === visibleIds.length) {
       set({ selectedItemIds: [], isSelectionMode: false });
@@ -331,235 +410,77 @@ export const useLibraryStore = create<LibraryStore>((set, get) => ({
   },
   
   clearSelection: () => {
-    set({ selectedItemIds: [], isSelectionMode: false, lastSelectedIndex: null });
+    set({ selectedItemIds: [], isSelectionMode: false });
   },
   
   setSelectionMode: (enabled: boolean) => {
     set({ isSelectionMode: enabled });
     if (!enabled) {
-      get().clearSelection();
+      set({ selectedItemIds: [] });
     }
   },
   
-  // Item operations
-  renameItem: (itemId: string, newName: string) => {
-    set((state) => ({
-      items: {
-        ...state.items,
-        [itemId]: {
-          ...state.items[itemId],
-          name: newName,
-          updatedAt: new Date(),
-        },
-      },
-    }));
-  },
-  
-  deleteItems: (itemIds: string[]) => {
-    set((state) => {
-      const newItems = { ...state.items };
-      
-      itemIds.forEach(id => {
-        const item = newItems[id];
-        if (!item) return;
-        
-        // Remove from parent's childrenIds
-        if (item.parentId) {
-          const parent = newItems[item.parentId];
-          if (parent && parent.type === 'folder') {
-            parent.childrenIds = parent.childrenIds.filter(childId => childId !== id);
-            parent.itemCount = parent.childrenIds.length;
-          }
-        }
-        
-        delete newItems[id];
-      });
-      
-      return {
-        items: newItems,
-        selectedItemIds: [],
-        isSelectionMode: false,
-      };
-    });
-  },
-  
-  moveItems: (itemIds: string[], targetFolderId: string | null) => {
-    set((state) => {
-      const newItems = { ...state.items };
-      
-      itemIds.forEach(id => {
-        const item = newItems[id];
-        if (!item) return;
-        
-        // Remove from old parent
-        if (item.parentId) {
-          const oldParent = newItems[item.parentId];
-          if (oldParent && oldParent.type === 'folder') {
-            oldParent.childrenIds = oldParent.childrenIds.filter(childId => childId !== id);
-            oldParent.itemCount = oldParent.childrenIds.length;
-          }
-        }
-        
-        // Add to new parent
-        item.parentId = targetFolderId;
-        if (targetFolderId) {
-          const newParent = newItems[targetFolderId];
-          if (newParent && newParent.type === 'folder') {
-            newParent.childrenIds.push(id);
-            newParent.itemCount = newParent.childrenIds.length;
-          }
-        }
-      });
-      
-      return { items: newItems };
-    });
-  },
-  
-  createFolder: (name: string, parentId: string | null) => {
-    const newId = `folder-${Date.now()}`;
-    const now = new Date();
-    
-    set((state) => {
-      const newFolder: FolderItem = {
-        id: newId,
-        type: 'folder',
-        name,
-        parentId,
-        itemCount: 0,
-        childrenIds: [],
-        createdAt: now,
-        updatedAt: now,
-      };
-      
-      const newItems = { ...state.items, [newId]: newFolder };
-      
-      // Add to parent's children
-      if (parentId) {
-        const parent = newItems[parentId];
-        if (parent && parent.type === 'folder') {
-          parent.childrenIds.push(newId);
-          parent.itemCount = parent.childrenIds.length;
-        }
-      }
-      
-      return { items: newItems };
-    });
-  },
-  
-  uploadFiles: (files: File[], parentId: string | null) => {
-    const now = new Date();
-    
-    set((state) => {
-      const newItems = { ...state.items };
-      
-      files.forEach((file, index) => {
-        const extension = file.name.split('.').pop() || '';
-        const newId = `file-${Date.now()}-${index}`;
-        
-        const newFile: FileItem = {
-          id: newId,
-          type: 'file',
-          name: file.name,
-          parentId,
-          fileType: getFileTypeFromExt(extension),
-          size: file.size,
-          extension,
-          createdAt: now,
-          updatedAt: now,
-        };
-        
-        newItems[newId] = newFile;
-        
-        // Add to parent's children
-        if (parentId) {
-          const parent = newItems[parentId];
-          if (parent && parent.type === 'folder') {
-            parent.childrenIds.push(newId);
-            parent.itemCount = parent.childrenIds.length;
-          }
-        }
-      });
-      
-      return { items: newItems };
-    });
-  },
-  
-  // View controls
+  // View actions
   setViewMode: (mode: 'grid' | 'list') => {
     set({ viewMode: mode });
   },
   
-  setSortBy: (sortBy) => {
-    set({ sortBy });
+  setSortBy: (sortBy: 'name' | 'size' | 'createdAt', sortOrder?: 'asc' | 'desc') => {
+    set({ sortBy, sortOrder: sortOrder || get().sortOrder });
+    // Refresh to apply sorting
+    get().refreshCurrentFolder();
   },
   
-  toggleSortOrder: () => {
-    set((state) => ({
-      sortOrder: state.sortOrder === 'asc' ? 'desc' : 'asc',
-    }));
+  setFilterBy: (filter: 'all' | 'files' | 'folders') => {
+    set({ filterBy: filter });
   },
   
-  setFilterBy: (filterBy) => {
-    set({ filterBy });
-  },
-  
-  // Drag and drop
-  setDragging: (isDragging: boolean, itemId: string | null) => {
-    set({ isDragging, draggedItemId: itemId });
-  },
-  
-  // Utility methods
-  getItemsByFolder: (folderId: string | null) => {
-    const state = get();
-    return Object.values(state.items).filter(item => item.parentId === folderId);
-  },
-  
-  getVisibleItems: () => {
-    const state = get();
-    let items = get().getItemsByFolder(state.currentFolderId);
+  // Backward compatibility methods
+  uploadFiles: async (files: File[], folderId: string | null) => {
+    // Import upload service dynamically to avoid circular dependency
+    const { uploadFileToS3 } = await import('@/services/fileUploadService');
+    const { useUploadQueueStore } = await import('@/store/uploadQueueStore');
     
-    // Apply filter
-    if (state.filterBy === 'files') {
-      items = items.filter(item => item.type === 'file');
-    } else if (state.filterBy === 'folders') {
-      items = items.filter(item => item.type === 'folder');
+    // Add files to upload queue
+    for (const file of files) {
+      const itemId = useUploadQueueStore.getState().addUpload(file, folderId || undefined);
+      
+      // Start upload
+      await uploadFileToS3(itemId, file, folderId || undefined);
     }
     
-    // Apply sort
-    items.sort((a, b) => {
-      let comparison = 0;
-      
-      switch (state.sortBy) {
-        case 'name':
-          comparison = a.name.localeCompare(b.name);
-          break;
-        case 'date':
-          comparison = b.updatedAt.getTime() - a.updatedAt.getTime();
-          break;
-        case 'size':
-          const aSize = a.type === 'file' ? a.size : 0;
-          const bSize = b.type === 'file' ? b.size : 0;
-          comparison = bSize - aSize;
-          break;
-        case 'type':
-          comparison = a.type.localeCompare(b.type);
-          break;
-      }
-      
-      return state.sortOrder === 'asc' ? comparison : -comparison;
-    });
+    // Refresh current folder after uploads
+    await get().refreshCurrentFolder();
+  },
+  
+  deleteItems: async (itemIds: string[]) => {
+    await get().bulkDelete(itemIds);
+  },
+  
+  renameItem: async (itemId: string, newName: string) => {
+    const item = get().items[itemId];
+    if (!item) throw new Error('Item not found');
     
-    return items;
+    if (item.type === 'file') {
+      await get().renameFile(itemId, newName);
+    } else {
+      await get().renameFolder(itemId, newName);
+    }
+  },
+  
+  // Getters
+  getVisibleItems: () => {
+    return Object.values(get().items);
+  },
+  
+  isAllSelected: () => {
+    const state = get();
+    const visibleItems = get().getVisibleItems();
+    return visibleItems.length > 0 && state.selectedItemIds.length === visibleItems.length;
+  },
+  
+  isSomeSelected: () => {
+    const state = get();
+    return state.selectedItemIds.length > 0 && !get().isAllSelected();
   },
 }));
-
-// Helper function
-function getFileTypeFromExt(extension: string): FileItem['fileType'] {
-  const ext = extension.toLowerCase();
-  
-  if (['pdf'].includes(ext)) return 'pdf';
-  if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(ext)) return 'image';
-  if (['doc', 'docx', 'txt', 'md'].includes(ext)) return 'document';
-  
-  return 'other';
-}

@@ -1,4 +1,5 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useParams } from 'react-router-dom';
 import { LibrarySearchBar } from '@/components/library/LibrarySearchBar';
 import { LibraryControls } from '@/components/library/LibraryControls';
 import { BreadcrumbNavigation } from '@/components/library/BreadcrumbNavigation';
@@ -14,9 +15,13 @@ import { useLibraryStore } from '@/store/libraryStore';
 import { useLibraryNavigation } from '@/hooks/useLibraryNavigation';
 import { useMultiSelect } from '@/hooks/useMultiSelect';
 import { useModalRouting } from '@/hooks/useModalRouting';
+import { UploadProgress } from '@/components/library/UploadProgress';
+import { FilePreviewModal } from '@/components/library/FilePreviewModal';
+import { ExportModal } from '@/components/library/ExportModal';
 import type { CreateOption, UploadOption, FilterOption, SortOption } from '@/types/libraryControls';
-import type { CreateFolderData, DeleteConfirmData, SweetAlertData } from '@/types/libraryModals';
+import type { CreateFolderData, DeleteConfirmData, SweetAlertData, UploadCompletionSummary } from '@/types/libraryModals';
 import type { LibraryItem } from '@/types/library';
+import { queueFiles, waitForUploads } from '@/services/fileUploadService';
 
 /**
  * LibraryPage component - Phase 1: Google Drive Experience
@@ -33,6 +38,9 @@ export function LibraryPage() {
   const [searchValue, setSearchValue] = useState('');
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   const [renameItem, setRenameItem] = useState<LibraryItem | null>(null);
+  const [previewFile, setPreviewFile] = useState<LibraryItem | null>(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const { folderId } = useParams<{ folderId?: string }>();
   
   // Get library state - extract only what we need
   const items = useLibraryStore((state) => state.items);
@@ -40,10 +48,42 @@ export function LibraryPage() {
   const filterBy = useLibraryStore((state) => state.filterBy);
   const sortBy = useLibraryStore((state) => state.sortBy);
   const sortOrder = useLibraryStore((state) => state.sortOrder);
+  const fetchFiles = useLibraryStore((state) => state.fetchFiles);
+  const navigateToFolder = useLibraryStore((state) => state.navigateToFolder);
   const createFolder = useLibraryStore((state) => state.createFolder);
-  const uploadFiles = useLibraryStore((state) => state.uploadFiles);
   const deleteItems = useLibraryStore((state) => state.deleteItems);
   const renameItemAction = useLibraryStore((state) => state.renameItem);
+  const refreshCurrentFolder = useLibraryStore((state) => state.refreshCurrentFolder);
+  
+  // Fetch initial data on mount and sync with URL params
+  useEffect(() => {
+    if (folderId) {
+      navigateToFolder(folderId).catch((error) => {
+        console.error('Failed to navigate to folder', error);
+      });
+    } else if (currentFolderId !== null) {
+      // URL is /library but store thinks we're in a folder - reset to root
+      navigateToFolder(null).catch((error) => {
+        console.error('Failed to navigate to root', error);
+      });
+    } else {
+      fetchFiles().catch((error) => {
+        console.error('Failed to fetch library root', error);
+      });
+    }
+  }, [folderId, fetchFiles, navigateToFolder]);
+  
+  // Separate effect to keep store in sync with URL changes
+  useEffect(() => {
+    const urlFolderId = folderId || null;
+    
+    // Only navigate if URL folder doesn't match current store folder
+    if (urlFolderId !== currentFolderId) {
+      navigateToFolder(urlFolderId).catch((error) => {
+        console.error('Failed to sync folder with URL', error);
+      });
+    }
+  }, [folderId, currentFolderId, navigateToFolder]);
   
   // Compute visible items with useMemo to prevent infinite loops
   const visibleItems = useMemo(() => {
@@ -68,11 +108,12 @@ export function LibraryPage() {
         case 'date':
           comparison = b.updatedAt.getTime() - a.updatedAt.getTime();
           break;
-        case 'size':
+        case 'size': {
           const aSize = a.type === 'file' ? a.size : 0;
           const bSize = b.type === 'file' ? b.size : 0;
           comparison = bSize - aSize;
           break;
+        }
         case 'type':
           comparison = a.type.localeCompare(b.type);
           break;
@@ -160,9 +201,22 @@ export function LibraryPage() {
     openModal('deleteConfirm', deleteData);
   }, [selectedItemIds, getSelectedItems, openModal]);
 
+  // Preview handler
+  const handlePreview = useCallback(() => {
+    const items = getSelectedItems();
+    if (items.length === 1 && items[0].type === 'file') {
+      setPreviewFile(items[0]);
+    }
+  }, [getSelectedItems]);
+
+  // Export handler
+  const handleExport = useCallback(() => {
+    setExportModalOpen(true);
+  }, []);
+
   // Modal handlers
   const handleCreateFolder = useCallback((data: CreateFolderData) => {
-    createFolder(data.name, currentFolderId);
+    createFolder(data.name, currentFolderId || undefined);
     openModal('sweetAlert', {
       type: 'success',
       title: 'Folder Created',
@@ -171,15 +225,39 @@ export function LibraryPage() {
     } as SweetAlertData);
   }, [currentFolderId, createFolder, openModal]);
 
-  const handleUploadComplete = useCallback((files: File[]) => {
-    uploadFiles(files, currentFolderId);
+  const showUploadSummary = useCallback((summary: UploadCompletionSummary, title = 'Upload Summary') => {
+  const { successful, failed, errors } = summary;
+    const hasSuccess = successful > 0;
+    const hasFailure = failed > 0;
+
+    if (!hasSuccess && !hasFailure) {
+      return;
+    }
+
+    const type: SweetAlertData['type'] = hasFailure ? (hasSuccess ? 'warning' : 'error') : 'success';
+
+    const messageParts: string[] = [];
+    if (hasSuccess) {
+      messageParts.push(`${successful} file${successful === 1 ? '' : 's'} uploaded successfully.`);
+    }
+    if (hasFailure) {
+      messageParts.push(`${failed} file${failed === 1 ? '' : 's'} failed to upload.`);
+    }
+    if (hasFailure && errors.length > 0) {
+      messageParts.push(`Last error: ${errors[errors.length - 1]}`);
+    }
+
     openModal('sweetAlert', {
-      type: 'success',
-      title: 'Upload Complete',
-      message: `${files.length} file(s) uploaded successfully.`,
+      type,
+      title,
+      message: messageParts.join(' '),
       confirmText: 'OK'
     } as SweetAlertData);
-  }, [currentFolderId, uploadFiles, openModal]);
+  }, [openModal]);
+
+  const handleUploadComplete = useCallback((summary: UploadCompletionSummary) => {
+    showUploadSummary(summary, summary.failed > 0 ? 'Upload Complete with Issues' : 'Upload Complete');
+  }, [showUploadSummary]);
 
   const handleDeleteConfirm = useCallback(() => {
     deleteItems(selectedItemIds);
@@ -200,15 +278,43 @@ export function LibraryPage() {
   }, [renameItem, renameItemAction]);
 
   // Global file drop handler
-  const handleFileDrop = useCallback((files: File[]) => {
-    uploadFiles(files, currentFolderId);
-    openModal('sweetAlert', {
-      type: 'success',
-      title: 'Files Uploaded',
-      message: `${files.length} file(s) uploaded successfully.`,
-      confirmText: 'OK'
-    } as SweetAlertData);
-  }, [currentFolderId, uploadFiles, openModal]);
+  const startUploads = useCallback(async (files: File[]): Promise<UploadCompletionSummary> => {
+    if (files.length === 0) {
+      return { files, successful: 0, failed: 0, errors: [] };
+    }
+
+    const uploadIds = queueFiles(files, currentFolderId || undefined);
+    const results = await waitForUploads(uploadIds);
+    const successful = results.filter((result) => result.status === 'complete').length;
+    const failed = results.length - successful;
+    const errors = results
+      .filter((result) => result.status !== 'complete' && result.error)
+      .map((result) => result.error as string);
+
+    if (successful > 0) {
+      await refreshCurrentFolder();
+    }
+
+    return { files, successful, failed, errors };
+  }, [currentFolderId, refreshCurrentFolder]);
+
+  const handleFileDrop = useCallback(async (files: File[]) => {
+    try {
+      const summary = await startUploads(files);
+      showUploadSummary(summary, summary.failed > 0 ? 'Upload Complete with Issues' : 'Files Uploaded');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Upload failed';
+      showUploadSummary(
+        {
+          files,
+          successful: 0,
+          failed: files.length,
+          errors: [message],
+        },
+        'Upload Failed'
+      );
+    }
+  }, [startUploads, showUploadSummary]);
 
   return (
     <GlobalDropZone onFileDrop={handleFileDrop}>
@@ -243,7 +349,9 @@ export function LibraryPage() {
 
         {/* Multi-Select Controls */}
         <MultiSelectControls
+          onPreview={handlePreview}
           onRename={handleRename}
+          onExport={handleExport}
           onDelete={handleDelete}
         />
 
@@ -298,7 +406,24 @@ export function LibraryPage() {
             onClose={closeModal}
           />
         )}
+
+        {/* File Preview Modal */}
+        <FilePreviewModal
+          isOpen={!!previewFile}
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+        />
+
+        {/* Export Modal */}
+        <ExportModal
+          isOpen={exportModalOpen}
+          selectedItems={getSelectedItems()}
+          onClose={() => setExportModalOpen(false)}
+        />
       </div>
+      
+      {/* Upload Progress Widget */}
+      <UploadProgress />
     </GlobalDropZone>
   );
 }

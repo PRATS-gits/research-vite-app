@@ -1,13 +1,14 @@
-import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import { X } from 'lucide-react';
+import { X, Download, Eye } from 'lucide-react';
 import { useMultiSelect } from '@/hooks/useMultiSelect';
 import { cn } from '@/lib/utils';
 
 interface MultiSelectControlsProps {
   onDelete?: () => void;
   onRename?: () => void;
+  onExport?: () => void;
+  onPreview?: () => void;
   className?: string;
 }
 
@@ -24,6 +25,8 @@ interface MultiSelectControlsProps {
 export function MultiSelectControls({
   onDelete,
   onRename,
+  onExport,
+  onPreview,
   className,
 }: MultiSelectControlsProps) {
   const {
@@ -69,6 +72,18 @@ export function MultiSelectControls({
 
       {/* Action Buttons */}
       <div className="flex items-center gap-2">
+        {onPreview && selectedCount === 1 && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onPreview}
+            className="shrink-0"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Preview
+          </Button>
+        )}
+        
         {onRename && selectedCount === 1 && (
           <Button
             variant="outline"
@@ -77,6 +92,18 @@ export function MultiSelectControls({
             className="shrink-0"
           >
             Rename
+          </Button>
+        )}
+
+        {onExport && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExport}
+            className="shrink-0"
+          >
+            <Download className="h-4 w-4 mr-1" />
+            Export
           </Button>
         )}
 

@@ -126,7 +126,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
             <SidebarGroupContent>
               <SidebarMenu>
                 {item.items.map((navItem) => {
-                  const isActive = location.pathname === navItem.url;
+                  const isActive = navItem.url === '/library'
+                    ? location.pathname === '/library' || location.pathname.startsWith('/library/')
+                    : location.pathname === navItem.url;
                   return (
                     <SidebarMenuItem key={navItem.title}>
                       <SidebarMenuButton
