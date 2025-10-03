@@ -16,13 +16,7 @@ export function SettingsPage() {
         <div className="rounded-lg border p-6">
           <h3 className="text-lg font-semibold mb-4">General Preferences</h3>
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">Dark Mode</p>
-                <p className="text-sm text-muted-foreground">Toggle between light and dark themes</p>
-              </div>
-              <Switch />
-            </div>
+           
             
             <div className="flex items-center justify-between">
               <div>

@@ -7,6 +7,7 @@ import {
   RiPulseLine,
   RiFindReplaceLine,
   RiLogoutCircleLine,
+  RiLoginCircleLine,
 } from "@remixicon/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -100,6 +101,14 @@ export function NavUser({
                 aria-hidden="true"
               />
               <span>Log out</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem className="gap-3 px-1">
+              <RiLoginCircleLine
+                size={20}
+                className="text-muted-foreground/70"
+                aria-hidden="true"
+              />
+              <span>Log in</span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
