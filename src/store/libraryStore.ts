@@ -91,6 +91,11 @@ export interface LibraryStoreState {
   bulkDelete: (fileIds: string[]) => Promise<void>;
   bulkMove: (fileIds: string[], targetFolderId: string | null) => Promise<void>;
   
+  // Context menu operations
+  downloadFile: (fileId: string) => Promise<void>;
+  duplicateFile: (fileId: string) => Promise<void>;
+  starItem: (itemId: string) => Promise<void>;
+  
   // Folder operations
   createFolder: (name: string, parentId?: string) => Promise<Folder>;
   renameFolder: (folderId: string, newName: string) => Promise<void>;
@@ -381,6 +386,79 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
       const { [folderId]: _removed, ...rest } = state.items;
       return { items: rest };
     });
+  },
+  
+  // Context menu operations
+  downloadFile: async (fileId: string) => {
+    const { requestPresignedDownloadUrl } = await import('@/api/filesApi');
+    
+    try {
+      const { downloadUrl, fileName } = await requestPresignedDownloadUrl(fileId);
+      
+      // Create temporary download link
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      
+      // Clean up
+      URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Download failed';
+      set({ error: errorMessage });
+      throw error;
+    }
+  },
+  
+  duplicateFile: async (fileId: string) => {
+    const { duplicateFile: apiDuplicateFile } = await import('@/api/filesApi');
+    
+    try {
+      const duplicatedFile = await apiDuplicateFile(fileId);
+      
+      // Add to state
+      set((state) => ({
+        items: {
+          ...state.items,
+          [duplicatedFile.id]: convertFileToLibraryItem(duplicatedFile),
+        },
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Duplicate failed';
+      set({ error: errorMessage });
+      throw error;
+    }
+  },
+  
+  starItem: async (itemId: string) => {
+    const { toggleStarItem } = await import('@/api/filesApi');
+    
+    try {
+      const item = get().items[itemId];
+      if (!item) throw new Error('Item not found');
+      
+      const newStarredState = !item.starred;
+      
+      // Update backend
+      await toggleStarItem(itemId, newStarredState);
+      
+      // Update local state
+      set((state) => ({
+        items: {
+          ...state.items,
+          [itemId]: {
+            ...state.items[itemId],
+            starred: newStarredState,
+          },
+        },
+      }));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Star operation failed';
+      set({ error: errorMessage });
+      throw error;
+    }
   },
   
   // Selection actions

@@ -11,10 +11,12 @@ import { CreateFolderModal } from '@/components/library/CreateFolderModal';
 import { UploadModal } from '@/components/library/UploadModal';
 import { DeleteConfirmModal } from '@/components/library/DeleteConfirmModal';
 import { SweetAlert } from '@/components/ui/SweetAlert';
+import { ContextMenu } from '@/components/library/ContextMenu';
 import { useLibraryStore } from '@/store/libraryStore';
 import { useLibraryNavigation } from '@/hooks/useLibraryNavigation';
 import { useMultiSelect } from '@/hooks/useMultiSelect';
 import { useModalRouting } from '@/hooks/useModalRouting';
+import { useContextMenu } from '@/hooks/useContextMenu';
 import { UploadProgress } from '@/components/library/UploadProgress';
 import { FilePreviewModal } from '@/components/library/FilePreviewModal';
 import { ExportModal } from '@/components/library/ExportModal';
@@ -41,6 +43,9 @@ export function LibraryPage() {
   const [previewFile, setPreviewFile] = useState<LibraryItem | null>(null);
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const { folderId } = useParams<{ folderId?: string }>();
+  
+  // Context menu state
+  const { isOpen: isContextMenuOpen, position: contextMenuPosition, targetItemId, openContextMenu, closeContextMenu } = useContextMenu();
   
   // Get library state - extract only what we need
   const items = useLibraryStore((state) => state.items);
@@ -357,12 +362,24 @@ export function LibraryPage() {
 
         {/* Library Content Grid with Drag-and-Drop */}
         {visibleItems.length > 0 ? (
-          <DndLibraryGrid items={visibleItems} />
+          <DndLibraryGrid 
+            items={visibleItems}
+            onItemContextMenu={(item, e) => openContextMenu(e, item.id)}
+          />
         ) : (
           <div className="text-center py-12 text-muted-foreground">
             <p>No items in this folder</p>
             <p className="text-sm mt-2">Create a folder or upload files to get started</p>
           </div>
+        )}
+
+        {/* Context Menu */}
+        {isContextMenuOpen && contextMenuPosition && targetItemId && items[targetItemId] && (
+          <ContextMenu
+            item={items[targetItemId]}
+            position={contextMenuPosition}
+            onClose={closeContextMenu}
+          />
         )}
 
         {/* Modal Components */}

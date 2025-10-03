@@ -68,6 +68,11 @@ export interface BreadcrumbItem {
   path: string;
 }
 
+export interface ShareLinkResponse {
+  shareUrl: string;
+  expiresAt: string | Date;
+}
+
 export interface BulkOperationResponse {
   success: boolean;
   processedCount: number;
@@ -407,4 +412,69 @@ export async function getFolderBreadcrumb(folderId: string): Promise<BreadcrumbI
   }
   
   return result.data;
+}
+
+// ==================== CONTEXT MENU OPERATIONS ====================
+
+/**
+ * Generate shareable link for file
+ * POST /api/files/:id/share
+ */
+export async function generateShareLink(
+  fileId: string,
+  expiresInDays: number = 7
+): Promise<ShareLinkResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/files/${fileId}/share`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ expiresInDays }),
+  });
+  
+  const result: ApiResponse<ShareLinkResponse> = await response.json();
+  
+  if (!response.ok || !result.success || !result.data) {
+    throw new Error(result.error || 'Failed to generate share link');
+  }
+  
+  return result.data;
+}
+
+/**
+ * Duplicate file (make a copy)
+ * POST /api/files/:id/duplicate
+ */
+export async function duplicateFile(fileId: string): Promise<FileMetadata> {
+  const response = await fetch(`${API_BASE_URL}/api/files/${fileId}/duplicate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  
+  const result: ApiResponse<FileMetadata> = await response.json();
+  
+  if (!response.ok || !result.success || !result.data) {
+    throw new Error(result.error || 'Failed to duplicate file');
+  }
+  
+  return result.data;
+}
+
+/**
+ * Star/unstar file or folder
+ * PUT /api/files/:id/star
+ */
+export async function toggleStarItem(
+  itemId: string,
+  starred: boolean
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/files/${itemId}/star`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ starred }),
+  });
+  
+  const result: ApiResponse<void> = await response.json();
+  
+  if (!response.ok || !result.success) {
+    throw new Error(result.error || 'Failed to star item');
+  }
 }

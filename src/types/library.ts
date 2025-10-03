@@ -12,6 +12,7 @@ export interface BaseLibraryItem {
   createdAt: Date;
   updatedAt: Date;
   isSelected?: boolean;
+  starred?: boolean; // Star/favorite status
 }
 
 export interface FileItem extends BaseLibraryItem {
