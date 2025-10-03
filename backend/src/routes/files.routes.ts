@@ -12,6 +12,11 @@ const router = Router();
 router.post('/presigned-url', FilesController.getPresignedUploadUrl);
 router.post('/:id/download-url', FilesController.getPresignedDownloadUrl);
 
+// Context menu operations
+router.post('/:id/share', FilesController.generateShareLink);
+router.post('/:id/duplicate', FilesController.duplicateFile);
+router.put('/:id/star', FilesController.toggleStar);
+
 // File metadata endpoints
 router.get('/list', FilesController.listFiles);
 router.get('/:id', FilesController.getFile);

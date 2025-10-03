@@ -142,6 +142,27 @@ export class FolderModel {
     return folders[index];
   }
 
+  static async updateMetadata(id: string, updates: Partial<Folder>): Promise<Folder | null> {
+    const folders = await this.readFolders();
+    const index = folders.findIndex(f => f.id === id && !f.deletedAt);
+    
+    if (index === -1) {
+      return null;
+    }
+
+    // Prevent changing critical fields
+    const { id: _, parentId, path, createdAt, ...safeUpdates } = updates;
+
+    folders[index] = {
+      ...folders[index],
+      ...safeUpdates,
+      updatedAt: new Date()
+    };
+
+    await this.writeFolders(folders);
+    return folders[index];
+  }
+
   private static async rebuildPaths(folders: Folder[]): Promise<void> {
     for (const folder of folders) {
       if (!folder.deletedAt) {

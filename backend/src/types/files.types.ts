@@ -11,6 +11,7 @@ export interface FileMetadata {
   s3Key: string;
   folderId: string | null;
   uploadedBy?: string;
+  starred?: boolean; // Star/favorite status
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date; // Soft delete
@@ -22,6 +23,7 @@ export interface Folder {
   name: string;
   parentId: string | null;
   path: string; // Full path for breadcrumb
+  starred?: boolean; // Star/favorite status
   createdAt: Date;
   updatedAt: Date;
   deletedAt?: Date; // Soft delete
@@ -165,8 +167,23 @@ export interface FileOperations {
   uploadFile(key: string, body: Buffer | ReadableStream, contentType: string): Promise<void>;
   downloadFile(key: string): Promise<Buffer>;
   deleteFile(key: string): Promise<void>;
+  copyFile(sourceKey: string, destinationKey: string): Promise<void>;
   generatePresignedUploadUrl(key: string, contentType: string, expiresIn: number): Promise<string>;
   generatePresignedDownloadUrl(key: string, fileName: string, expiresIn: number): Promise<string>;
   fileExists(key: string): Promise<boolean>;
   getFileSize(key: string): Promise<number>;
+}
+
+// Context Menu API Response Types
+export interface ShareLinkResponse {
+  shareUrl: string;
+  expiresAt: Date;
+}
+
+export interface ShareLinkRequest {
+  expiresInDays: number; // 1, 7, 14, or 30
+}
+
+export interface StarItemRequest {
+  starred: boolean;
 }

@@ -765,54 +765,65 @@ Right-click context menu lacks Google Drive-like functionality. Current implemen
 ### Testing Checklist
 - [x] Right-click on file shows full context menu ✅
 - [x] Right-click on folder shows appropriate options ✅
-- [x] Download single file works (Frontend ready - needs backend endpoint `POST /api/files/:id/download-url` - **ALREADY EXISTS**)
-- [x] Share link generates and copies (Frontend ready - **needs backend endpoint**)
+- [x] Download single file works ✅ **VERIFIED - Backend endpoint operational**
+- [x] Share link generates and copies ✅ **IMPLEMENTED - Backend: `POST /api/files/:id/share`**
 - [x] Move to... shows folder picker (Frontend complete) ✅
-- [x] Make a copy duplicates file correctly (Frontend ready - **needs backend endpoint**)
-- [x] Star/unstar toggles properly (Frontend ready - **needs backend endpoint**)
+- [x] Make a copy duplicates file correctly ✅ **IMPLEMENTED - Backend: `POST /api/files/:id/duplicate`**
+- [x] Star/unstar toggles properly ✅ **IMPLEMENTED - Backend: `PUT /api/files/:id/star`**
 - [x] Details panel opens with correct info (Frontend complete) ✅
 - [x] Delete option works (using existing functionality) ✅
 - [x] Context menu closes on outside click (Complete) ✅
 - [x] Keyboard navigation works (Esc to close) (Complete) ✅
 
+**Backend Implementation Status: ✅ COMPLETE (100%)** - October 3, 2025
+
 **Frontend Implementation Status: ✅ COMPLETE (100%)**  
-**Backend Implementation Status: ⚠️ PENDING (3 endpoints required)**
+**Backend Implementation Status: ✅ COMPLETE (100%)** - October 3, 2025
 
 ### Backend Agent Tasks (HANDOFF DOCUMENT: `docs/reports/handoff/CONTEXT_MENU_BACKEND_HANDOFF.md`)
 
 **Required Endpoints:**
 
-1. **POST /api/files/:id/share** ⚠️ PENDING
+1. **POST /api/files/:id/share** ✅ **IMPLEMENTED**
    - Generate presigned S3 URL with expiration
    - Accept `expiresInDays` parameter (1, 7, 14, 30)
    - Return `{ shareUrl, expiresAt }`
    - Frontend implementation: READY ✅
+   - Backend implementation: TESTED ✅
 
-2. **POST /api/files/:id/duplicate** ⚠️ PENDING
-   - Copy S3 object to new key
+2. **POST /api/files/:id/duplicate** ✅ **IMPLEMENTED**
+   - Copy S3 object to new key (S3, R2, MinIO support added)
    - Create new file metadata record
    - Append " (copy)" to filename
    - Return new FileMetadata object
    - Frontend implementation: READY ✅
+   - Backend implementation: TESTED ✅
 
-3. **PUT /api/files/:id/star** ⚠️ PENDING
+3. **PUT /api/files/:id/star** ✅ **IMPLEMENTED**
    - Add `starred` field to FileMetadata and Folder schemas
    - Toggle starred status
    - Accept `{ starred: boolean }` in body
    - Frontend implementation: READY ✅
+   - Backend implementation: TESTED ✅
 
-**Database Migration Required:**
-```sql
-ALTER TABLE files ADD COLUMN starred BOOLEAN DEFAULT FALSE;
-ALTER TABLE folders ADD COLUMN starred BOOLEAN DEFAULT FALSE;
-```
+**Database Schema Updates: ✅ COMPLETED**
+- Added `starred?: boolean` field to FileMetadata interface
+- Added `starred?: boolean` field to Folder interface
+- Added `FolderModel.updateMetadata()` method for partial updates
+
+**Storage Provider Updates: ✅ COMPLETED**
+- Added `copyFile()` method to S3Provider
+- Added `copyFile()` method to R2Provider  
+- Added `copyFile()` method to MinIOProvider
+- All providers now implement full FileOperations interface
 
 **Note:** Download functionality uses existing `POST /api/files/:id/download-url` endpoint which is already operational.
 
 ### Success Criteria
 - ✅ All 8 context menu features implemented (Frontend)
 - ✅ Context menu matches Google Drive UX
-- ⚠️ Actions execute without errors (Pending backend endpoints)
+- ✅ All backend endpoints implemented and tested
+- ✅ Actions execute without errors
 - ✅ Visual feedback for all operations
 
 ### Implementation Notes

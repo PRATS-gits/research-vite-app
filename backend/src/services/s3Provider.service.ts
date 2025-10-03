@@ -9,6 +9,7 @@ import {
   PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  CopyObjectCommand,
   GetBucketCorsCommand,
   CreateMultipartUploadCommand,
   AbortMultipartUploadCommand,
@@ -198,6 +199,17 @@ export class S3Provider implements StorageProvider, FileOperations {
     await this.client.send(new DeleteObjectCommand({
       Bucket: this.credentials.bucket,
       Key: key
+    }));
+  }
+
+  /**
+   * Copy file within S3 bucket
+   */
+  async copyFile(sourceKey: string, destinationKey: string): Promise<void> {
+    await this.client.send(new CopyObjectCommand({
+      Bucket: this.credentials.bucket,
+      CopySource: `${this.credentials.bucket}/${sourceKey}`,
+      Key: destinationKey
     }));
   }
 

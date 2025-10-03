@@ -8,14 +8,17 @@ import {
   HeadBucketCommand, 
   PutObjectCommand,
   DeleteObjectCommand,
+  CopyObjectCommand,
   CreateMultipartUploadCommand,
   AbortMultipartUploadCommand,
-  GetObjectCommand
+  GetObjectCommand,
+  HeadObjectCommand
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import type { StorageCredentials, StorageProvider, StorageTestResult } from '../types/storage.types.js';
+import type { FileOperations } from '../types/files.types.js';
 
-export class R2Provider implements StorageProvider {
+export class R2Provider implements StorageProvider, FileOperations {
   private client: S3Client;
   private credentials: StorageCredentials;
 
@@ -169,5 +172,81 @@ export class R2Provider implements StorageProvider {
     });
     
     return getSignedUrl(this.client, command, { expiresIn });
+  }
+
+  /**
+   * Upload file to R2
+   */
+  async uploadFile(key: string, body: Buffer, contentType: string): Promise<void> {
+    await this.client.send(new PutObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      Body: body,
+      ContentType: contentType
+    }));
+  }
+
+  /**
+   * Download file from R2
+   */
+  async downloadFile(key: string): Promise<Buffer> {
+    const response = await this.client.send(new GetObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key
+    }));
+    
+    if (!response.Body) {
+      throw new Error('File not found');
+    }
+    
+    return Buffer.from(await response.Body.transformToByteArray());
+  }
+
+  /**
+   * Delete file from R2
+   */
+  async deleteFile(key: string): Promise<void> {
+    await this.client.send(new DeleteObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key
+    }));
+  }
+
+  /**
+   * Copy file within R2 bucket
+   */
+  async copyFile(sourceKey: string, destinationKey: string): Promise<void> {
+    await this.client.send(new CopyObjectCommand({
+      Bucket: this.credentials.bucket,
+      CopySource: `${this.credentials.bucket}/${sourceKey}`,
+      Key: destinationKey
+    }));
+  }
+
+  /**
+   * Check if file exists in R2
+   */
+  async fileExists(key: string): Promise<boolean> {
+    try {
+      await this.client.send(new HeadObjectCommand({
+        Bucket: this.credentials.bucket,
+        Key: key
+      }));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  /**
+   * Get file size from R2
+   */
+  async getFileSize(key: string): Promise<number> {
+    const response = await this.client.send(new HeadObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key
+    }));
+    
+    return response.ContentLength || 0;
   }
 }
