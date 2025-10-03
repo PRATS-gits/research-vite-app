@@ -114,8 +114,13 @@ export function DetailsPanel({ itemId, onClose }: DetailsPanelProps) {
   };
 
   return (
-    <Sheet open={true} onOpenChange={onClose}>
-      <SheetContent side="right" className="w-[400px] sm:w-[540px] overflow-y-auto">
+    <Sheet open={true} onOpenChange={onClose} modal>
+      <SheetContent 
+        side="right" 
+        className="w-[400px] sm:w-[540px] overflow-y-auto" 
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
         <SheetHeader>
           <SheetTitle>Details</SheetTitle>
           <SheetDescription>

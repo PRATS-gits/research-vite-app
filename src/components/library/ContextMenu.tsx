@@ -46,13 +46,21 @@ export function ContextMenu({ item, position, onClose }: ContextMenuProps) {
   >(null);
 
   const downloadFile = useLibraryStore((state) => state.downloadFile);
+  const previewFile = useLibraryStore((state) => state.previewFile);
   const duplicateFile = useLibraryStore((state) => state.duplicateFile);
   const starItem = useLibraryStore((state) => state.starItem);
   const navigateToFolder = useLibraryStore((state) => state.navigateToFolder);
 
-  const handleOpen = () => {
+  const handleOpen = async () => {
     if (item.type === 'folder') {
       navigateToFolder(item.id);
+    } else {
+      // For files, open preview in new tab
+      try {
+        await previewFile(item.id);
+      } catch (error) {
+        console.error('Preview failed:', error);
+      }
     }
     onClose();
   };

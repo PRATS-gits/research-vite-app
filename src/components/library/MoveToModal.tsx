@@ -84,8 +84,13 @@ export function MoveToModal({ itemIds, onClose }: MoveToModalProps) {
   };
 
   return (
-    <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={true} onOpenChange={onClose} modal>
+      <DialogContent 
+        className="sm:max-w-[500px]" 
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        showCloseButton={false}
+      >
         <DialogHeader>
           <DialogTitle>Move Items</DialogTitle>
           <DialogDescription>

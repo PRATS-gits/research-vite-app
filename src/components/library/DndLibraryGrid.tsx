@@ -16,6 +16,7 @@ import { FolderCard } from './FolderCard';
 import { useDragAndDrop } from '@/hooks/useDragAndDrop';
 import { useMultiSelect } from '@/hooks/useMultiSelect';
 import { useLibraryNavigation } from '@/hooks/useLibraryNavigation';
+import { useLibraryStore } from '@/store/libraryStore';
 import { cn } from '@/lib/utils';
 import type { LibraryItem } from '@/types/library';
 
@@ -46,11 +47,11 @@ export function DndLibraryGrid({
   className,
 }: DndLibraryGridProps) {
   const { goToFolder } = useLibraryNavigation();
+  const previewFile = useLibraryStore((state) => state.previewFile);
   const {
     isItemSelected,
     handleCheckboxChange,
     isSelectionMode,
-    toggleItemSelection,
   } = useMultiSelect();
 
   const {
@@ -74,28 +75,27 @@ export function DndLibraryGrid({
   // Get item IDs for SortableContext
   const itemIds = useMemo(() => items.map(item => item.id), [items]);
 
-  // Handle item click
+  // Handle item click - do nothing, selection only via checkbox
   const handleItemClick = (item: LibraryItem, e: React.MouseEvent) => {
-    const isShiftClick = e.shiftKey;
-    
     // Call custom handler if provided
     if (onItemClick) {
       onItemClick(item, e);
     }
-    
-    // Toggle selection
-    toggleItemSelection(item.id, isShiftClick);
+    // Note: Selection is now only handled via checkbox
   };
 
-  // Handle folder double-click to navigate
+  // Handle double-click to open items
   const handleItemDoubleClick = (item: LibraryItem, e: React.MouseEvent) => {
     if (onItemDoubleClick) {
       onItemDoubleClick(item, e);
     }
     
-    // Navigate into folder on double-click
+    // Open folder or file on double-click
     if (item.type === 'folder') {
       goToFolder(item.id);
+    } else {
+      // For files, open preview in new tab
+      previewFile(item.id);
     }
   };
 

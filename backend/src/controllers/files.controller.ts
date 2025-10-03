@@ -91,6 +91,42 @@ export class FilesController {
   }
 
   /**
+   * POST /api/files/:id/presigned-preview-url
+   * Generate presigned URL for file preview (inline display)
+   */
+  static async getPresignedPreviewUrl(req: Request, res: Response): Promise<void> {
+    try {
+      const { id } = req.params;
+      const { expiresIn } = req.body;
+
+      const result = await PresignedUrlService.generatePreviewUrl({
+        fileId: id,
+        expiresIn
+      });
+
+      res.status(200).json({
+        success: true,
+        message: 'Preview URL generated successfully',
+        data: result,
+        timestamp: new Date()
+      } as ApiResponse<PresignedDownloadResponse>);
+    } catch (error) {
+      console.error('Get presigned preview URL error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error',
+        message: 'Failed to generate preview URL',
+        timestamp: new Date()
+      } as ApiResponse);
+    }
+  }
+
+  /**
+   * GET /api/files/list
+   * List files with pagination and filtering
+```
+
+  /**
    * GET /api/files/list
    * List files with pagination and filtering
    */

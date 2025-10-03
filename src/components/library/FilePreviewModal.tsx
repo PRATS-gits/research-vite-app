@@ -218,8 +218,13 @@ export function FilePreviewModal({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+    <Dialog open={isOpen} onOpenChange={onClose} modal>
+      <DialogContent 
+        className="sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" 
+        onInteractOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        showCloseButton={false}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span className="truncate mr-4">{file.name}</span>

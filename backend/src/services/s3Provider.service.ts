@@ -240,6 +240,19 @@ export class S3Provider implements StorageProvider, FileOperations {
   }
 
   /**
+   * Generate presigned preview URL (inline display)
+   */
+  async generatePresignedPreviewUrl(key: string, fileName: string, expiresIn: number): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      ResponseContentDisposition: `inline; filename="${fileName}"`
+    });
+    
+    return getSignedUrl(this.client, command, { expiresIn });
+  }
+
+  /**
    * Check if file exists
    */
   async fileExists(key: string): Promise<boolean> {

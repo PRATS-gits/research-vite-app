@@ -175,6 +175,19 @@ export class R2Provider implements StorageProvider, FileOperations {
   }
 
   /**
+   * Generate presigned preview URL for Cloudflare R2 (inline display)
+   */
+  async generatePresignedPreviewUrl(key: string, fileName: string, expiresIn: number): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      ResponseContentDisposition: `inline; filename="${fileName}"`
+    });
+    
+    return getSignedUrl(this.client, command, { expiresIn });
+  }
+
+  /**
    * Upload file to R2
    */
   async uploadFile(key: string, body: Buffer, contentType: string): Promise<void> {

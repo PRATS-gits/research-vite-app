@@ -74,6 +74,7 @@ export interface StorageProvider {
   getBucketInfo(): Promise<{ name: string; region: string }>;
   generatePresignedUploadUrl(key: string, contentType: string, expiresIn: number): Promise<string>;
   generatePresignedDownloadUrl(key: string, fileName: string, expiresIn: number): Promise<string>;
+  generatePresignedPreviewUrl(key: string, fileName: string, expiresIn: number): Promise<string>;
 }
 
 export interface ConfigurationLock {

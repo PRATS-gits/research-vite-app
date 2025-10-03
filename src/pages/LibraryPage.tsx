@@ -59,6 +59,7 @@ export function LibraryPage() {
   const deleteItems = useLibraryStore((state) => state.deleteItems);
   const renameItemAction = useLibraryStore((state) => state.renameItem);
   const refreshCurrentFolder = useLibraryStore((state) => state.refreshCurrentFolder);
+  const previewFileAction = useLibraryStore((state) => state.previewFile);
   
   // Fetch initial data on mount and sync with URL params
   useEffect(() => {
@@ -210,9 +211,10 @@ export function LibraryPage() {
   const handlePreview = useCallback(() => {
     const items = getSelectedItems();
     if (items.length === 1 && items[0].type === 'file') {
-      setPreviewFile(items[0]);
+      // Use the same preview action as context menu (opens in new tab)
+      previewFileAction(items[0].id);
     }
-  }, [getSelectedItems]);
+  }, [getSelectedItems, previewFileAction]);
 
   // Export handler
   const handleExport = useCallback(() => {

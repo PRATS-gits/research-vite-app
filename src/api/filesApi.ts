@@ -161,6 +161,26 @@ export async function requestPresignedDownloadUrl(
   return result.data;
 }
 
+/**
+ * Request presigned preview URL (inline display)
+ */
+export async function requestPresignedPreviewUrl(
+  fileId: string
+): Promise<PresignedDownloadResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/files/${fileId}/preview-url`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+  });
+  
+  const result: ApiResponse<PresignedDownloadResponse> = await response.json();
+  
+  if (!response.ok || !result.success || !result.data) {
+    throw new Error(result.error || 'Failed to get preview URL');
+  }
+  
+  return result.data;
+}
+
 function isValidPresignedUploadResponse(data: unknown): data is PresignedUrlResponse {
   if (typeof data !== 'object' || data === null) {
     return false;

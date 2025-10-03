@@ -103,20 +103,21 @@ export const FolderCard = memo(function FolderCard({
           aria-label="Drag handle"
         />
 
-        {/* Checkbox - always visible in selection mode or when selected */}
-        {(isSelectionMode || isSelected) && (
-          <div
-            className="absolute top-2 left-2 z-20"
-            data-checkbox
-            onClick={handleCheckboxClick}
-          >
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={onCheckboxChange}
-              aria-label={`Select ${folder.name}`}
-            />
-          </div>
-        )}
+        {/* Checkbox - always visible on hover or when selected/selection mode */}
+        <div
+          className={cn(
+            "absolute top-2 left-2 z-20 transition-opacity",
+            isSelectionMode || isSelected ? "opacity-100" : "opacity-0 group-hover:opacity-100"
+          )}
+          data-checkbox
+          onClick={handleCheckboxClick}
+        >
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={onCheckboxChange}
+            aria-label={`Select ${folder.name}`}
+          />
+        </div>
 
         {/* Star indicator - show if item is starred */}
         {folder.starred && (

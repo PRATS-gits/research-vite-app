@@ -98,4 +98,41 @@ export class PresignedUrlService {
       expiresAt
     };
   }
+
+  /**
+   * Generate presigned preview URL (inline display)
+   */
+  static async generatePreviewUrl(request: PresignedDownloadRequest): Promise<PresignedDownloadResponse> {
+    // Get file metadata
+    const file = await FileMetadataModel.findById(request.fileId);
+    if (!file) {
+      throw new Error('File not found');
+    }
+
+    // Get configured storage
+    const config = await StorageConfigModel.getConfiguration();
+    if (!config) {
+      throw new Error('Storage not configured');
+    }
+
+    // Decrypt credentials
+    const encryptionService = getEncryptionService();
+    const credentials = encryptionService.decryptCredentials(config.credentials);
+
+    // Get provider
+    const provider = StorageProviderFactory.createProvider(config.provider, credentials);
+
+    // Generate presigned URL with inline disposition
+    const expiresIn = request.expiresIn || 900; // 15 minutes default
+    const downloadUrl = await provider.generatePresignedPreviewUrl(file.s3Key, file.name, expiresIn);
+
+    const expiresAt = new Date();
+    expiresAt.setSeconds(expiresAt.getSeconds() + expiresIn);
+
+    return {
+      downloadUrl,
+      fileName: file.name,
+      expiresAt
+    };
+  }
 }

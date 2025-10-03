@@ -95,6 +95,7 @@ export interface LibraryStoreState {
   
   // Context menu operations
   downloadFile: (fileId: string) => Promise<void>;
+  previewFile: (fileId: string) => Promise<void>;
   duplicateFile: (fileId: string) => Promise<void>;
   starItem: (itemId: string) => Promise<void>;
   
@@ -417,6 +418,28 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
       const errorMessage = error instanceof Error ? error.message : 'Download failed';
       set({ error: errorMessage });
       toast.error(`Download failed: ${errorMessage}`);
+      throw error;
+    }
+  },
+  
+  previewFile: async (fileId: string) => {
+    const { requestPresignedPreviewUrl } = await import('@/api/filesApi');
+    const { toast } = await import('sonner');
+    
+    try {
+      const item = get().items[fileId];
+      if (!item || item.type !== 'file') return;
+      
+      const { downloadUrl } = await requestPresignedPreviewUrl(fileId);
+      
+      // Open in new tab for inline preview (PDFs display in browser)
+      window.open(downloadUrl, '_blank', 'noopener,noreferrer');
+      
+      toast.success(`Opening ${item.name} for preview`);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Preview failed';
+      set({ error: errorMessage });
+      toast.error(`Preview failed: ${errorMessage}`);
       throw error;
     }
   },

@@ -11,6 +11,7 @@ const router = Router();
 // Presigned URL endpoints
 router.post('/presigned-url', FilesController.getPresignedUploadUrl);
 router.post('/:id/download-url', FilesController.getPresignedDownloadUrl);
+router.post('/:id/preview-url', FilesController.getPresignedPreviewUrl);
 
 // Context menu operations
 router.post('/:id/share', FilesController.generateShareLink);

@@ -176,6 +176,19 @@ export class MinIOProvider implements StorageProvider, FileOperations {
   }
 
   /**
+   * Generate presigned preview URL for MinIO (inline display)
+   */
+  async generatePresignedPreviewUrl(key: string, fileName: string, expiresIn: number): Promise<string> {
+    const command = new GetObjectCommand({
+      Bucket: this.credentials.bucket,
+      Key: key,
+      ResponseContentDisposition: `inline; filename="${fileName}"`
+    });
+    
+    return getSignedUrl(this.client, command, { expiresIn });
+  }
+
+  /**
    * Upload file to MinIO
    */
   async uploadFile(key: string, body: Buffer, contentType: string): Promise<void> {
