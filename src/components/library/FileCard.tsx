@@ -4,7 +4,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Image, File } from 'lucide-react';
+import { FileText, Image, File, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FileItem } from '@/types/library';
 import { formatFileSize } from '@/types/library';
@@ -127,6 +127,13 @@ export const FileCard = memo(function FileCard({
               onCheckedChange={onCheckboxChange}
               aria-label={`Select ${file.name}`}
             />
+          </div>
+        )}
+
+        {/* Star indicator - show if item is starred */}
+        {file.starred && (
+          <div className="absolute top-2 right-2 z-20">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
           </div>
         )}
 

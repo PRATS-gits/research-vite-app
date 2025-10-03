@@ -5,7 +5,7 @@ import { CSS } from '@dnd-kit/utilities';
 import { Card } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
-import { Folder, FolderOpen } from 'lucide-react';
+import { Folder, FolderOpen, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { FolderItem } from '@/types/library';
 import { format } from 'date-fns';
@@ -115,6 +115,13 @@ export const FolderCard = memo(function FolderCard({
               onCheckedChange={onCheckboxChange}
               aria-label={`Select ${folder.name}`}
             />
+          </div>
+        )}
+
+        {/* Star indicator - show if item is starred */}
+        {folder.starred && (
+          <div className="absolute top-2 right-2 z-20">
+            <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
           </div>
         )}
 

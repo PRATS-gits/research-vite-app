@@ -16,6 +16,7 @@ export interface FileMetadata {
   s3Key: string;
   folderId: string | null;
   uploadedBy?: string;
+  starred?: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
   deletedAt?: string | Date;
@@ -27,6 +28,7 @@ export interface Folder {
   name: string;
   parentId: string | null;
   path: string;
+  starred?: boolean;
   createdAt: string | Date;
   updatedAt: string | Date;
   deletedAt?: string | Date;

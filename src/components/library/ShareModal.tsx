@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Copy, Check, Share2, Loader2 } from 'lucide-react';
 import { generateShareLink } from '@/api/filesApi';
+import { toast } from 'sonner';
 
 interface ShareModalProps {
   fileId: string;
@@ -44,9 +45,11 @@ export function ShareModal({ fileId, onClose }: ShareModalProps) {
     try {
       const response = await generateShareLink(fileId, parseInt(expiresIn));
       setShareUrl(response.shareUrl);
+      toast.success('Share link generated successfully');
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate share link';
       setError(errorMessage);
+      toast.error(`Failed to generate share link: ${errorMessage}`);
     } finally {
       setIsGenerating(false);
     }
@@ -56,9 +59,11 @@ export function ShareModal({ fileId, onClose }: ShareModalProps) {
     try {
       await navigator.clipboard.writeText(shareUrl);
       setIsCopied(true);
+      toast.success('Link copied to clipboard!');
       setTimeout(() => setIsCopied(false), 2000);
     } catch (err) {
       setError('Failed to copy to clipboard');
+      toast.error('Failed to copy to clipboard');
     }
   };
 

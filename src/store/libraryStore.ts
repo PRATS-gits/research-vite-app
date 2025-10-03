@@ -32,6 +32,7 @@ function convertFileToLibraryItem(file: FileMetadata): LibraryItem {
     fileType: getFileType(extension),
     size: file.size,
     extension,
+    starred: file.starred || false,
     createdAt: new Date(file.createdAt),
     updatedAt: new Date(file.updatedAt),
   };
@@ -45,6 +46,7 @@ function convertFolderToLibraryItem(folder: Folder, itemCount: number = 0, child
     parentId: folder.parentId,
     itemCount,
     childrenIds,
+    starred: folder.starred || false,
     createdAt: new Date(folder.createdAt),
     updatedAt: new Date(folder.updatedAt),
   };
@@ -391,31 +393,42 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
   // Context menu operations
   downloadFile: async (fileId: string) => {
     const { requestPresignedDownloadUrl } = await import('@/api/filesApi');
+    const { toast } = await import('sonner');
     
     try {
-      const { downloadUrl, fileName } = await requestPresignedDownloadUrl(fileId);
+      const item = get().items[fileId];
+      const fileName = item?.name || 'file';
+      
+      const { downloadUrl, fileName: downloadFileName } = await requestPresignedDownloadUrl(fileId);
       
       // Create temporary download link
       const a = document.createElement('a');
       a.href = downloadUrl;
-      a.download = fileName;
+      a.download = downloadFileName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       
       // Clean up
       URL.revokeObjectURL(downloadUrl);
+      
+      toast.success(`Downloaded ${fileName} successfully`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Download failed';
       set({ error: errorMessage });
+      toast.error(`Download failed: ${errorMessage}`);
       throw error;
     }
   },
   
   duplicateFile: async (fileId: string) => {
     const { duplicateFile: apiDuplicateFile } = await import('@/api/filesApi');
+    const { toast } = await import('sonner');
     
     try {
+      const originalItem = get().items[fileId];
+      const originalName = originalItem?.name || 'file';
+      
       const duplicatedFile = await apiDuplicateFile(fileId);
       
       // Add to state
@@ -425,15 +438,19 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
           [duplicatedFile.id]: convertFileToLibraryItem(duplicatedFile),
         },
       }));
+      
+      toast.success(`Created a copy of ${originalName}`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Duplicate failed';
       set({ error: errorMessage });
+      toast.error(`Failed to duplicate: ${errorMessage}`);
       throw error;
     }
   },
   
   starItem: async (itemId: string) => {
     const { toggleStarItem } = await import('@/api/filesApi');
+    const { toast } = await import('sonner');
     
     try {
       const item = get().items[itemId];
@@ -454,9 +471,12 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
           },
         },
       }));
+      
+      toast.success(newStarredState ? `Added ${item.name} to starred` : `Removed ${item.name} from starred`);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Star operation failed';
       set({ error: errorMessage });
+      toast.error(`Star operation failed: ${errorMessage}`);
       throw error;
     }
   },
