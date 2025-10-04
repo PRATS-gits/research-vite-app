@@ -17,6 +17,7 @@ dist-ssr
 
 # Critical Documents
 docs/history
+docs/prompts
 
 # Environment files
 .env
