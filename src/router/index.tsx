@@ -1,13 +1,20 @@
+import { Suspense } from 'react';
 import { createBrowserRouter, type RouteObject } from 'react-router-dom';
 import { Layout } from '@/components/layout/Layout';
-import { HomePage } from '@/pages/HomePage';
-import { LibraryPage } from '@/pages/LibraryPage';
-import { AgentsPage } from '@/pages/AgentsPage';
-import { ConnectionsPage } from '@/pages/ConnectionsPage';
-import { StatusPage } from '@/pages/StatusPage';
-import { SettingsPage } from '@/pages/SettingsPage';
+import { RouteLoadingFallback } from '@/components/layout/RouteLoadingFallback';
+import {
+  HomePage,
+  LibraryPage,
+  AgentsPage,
+  ConnectionsPage,
+  StatusPage,
+  SettingsPage,
+} from '@/pages';
 
-// Route definitions with proper type safety
+/**
+ * Route definitions with lazy loading for performance optimization
+ * Phase 3: Code splitting implemented for all routes except HomePage
+ */
 export const routes: RouteObject[] = [
   {
     path: '/',
@@ -15,31 +22,55 @@ export const routes: RouteObject[] = [
     children: [
       {
         index: true,
-        element: <HomePage />,
+        element: <HomePage />, // Eager-loaded landing page
       },
       {
         path: 'library',
-        element: <LibraryPage />,
+        element: (
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <LibraryPage />
+          </Suspense>
+        ),
       },
       {
         path: 'library/folders/:folderId',
-        element: <LibraryPage />,
+        element: (
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <LibraryPage />
+          </Suspense>
+        ),
       },
       {
         path: 'agents',
-        element: <AgentsPage />,
+        element: (
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <AgentsPage />
+          </Suspense>
+        ),
       },
       {
         path: 'connections',
-        element: <ConnectionsPage />,
+        element: (
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <ConnectionsPage />
+          </Suspense>
+        ),
       },
       {
         path: 'status',
-        element: <StatusPage />,
+        element: (
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <StatusPage />
+          </Suspense>
+        ),
       },
       {
         path: 'settings',
-        element: <SettingsPage />,
+        element: (
+          <Suspense fallback={<RouteLoadingFallback />}>
+            <SettingsPage />
+          </Suspense>
+        ),
       },
     ],
   },
