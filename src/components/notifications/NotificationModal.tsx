@@ -9,6 +9,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { Bell, CheckCircle, AlertCircle, Info, X } from 'lucide-react';
 
 interface Notification {
@@ -99,74 +100,78 @@ export function NotificationModal({ open, onOpenChange }: NotificationModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
-        <DialogHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Bell className="h-5 w-5" />
-              <DialogTitle>Notifications</DialogTitle>
+      <DialogContent className="max-w-md max-h-[80vh] p-0 flex flex-col">
+        <div className="p-6 pb-4">
+          <DialogHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Bell className="h-5 w-5" />
+                <DialogTitle>Notifications</DialogTitle>
+                {unreadCount > 0 && (
+                  <Badge variant="secondary" className="h-5">
+                    {unreadCount}
+                  </Badge>
+                )}
+              </div>
               {unreadCount > 0 && (
-                <Badge variant="secondary" className="h-5">
-                  {unreadCount}
-                </Badge>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={markAllAsRead}
+                  className="text-xs"
+                >
+                  Mark all read
+                </Button>
               )}
             </div>
-            {unreadCount > 0 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={markAllAsRead}
-                className="text-xs"
-              >
-                Mark all read
-              </Button>
-            )}
-          </div>
-          <DialogDescription>
-            Stay updated with your research activities and system notifications.
-          </DialogDescription>
-        </DialogHeader>
+            <DialogDescription>
+              Stay updated with your research activities and system notifications.
+            </DialogDescription>
+          </DialogHeader>
+        </div>
 
-        <div className="flex-1 overflow-y-auto space-y-1 pr-2">
-          {notifications.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p>No notifications yet</p>
-            </div>
-          ) : (
-            notifications.map((notification, index) => (
-              <React.Fragment key={notification.id}>
-                <div
-                  className={`p-3 rounded-md cursor-pointer transition-colors hover:bg-accent/50 ${
-                    !notification.read ? 'bg-accent/30' : ''
-                  }`}
-                  onClick={() => markAsRead(notification.id)}
-                >
-                  <div className="flex items-start space-x-3">
-                    {getNotificationIcon(notification.type)}
-                    <div className="flex-1 space-y-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium leading-none">
-                          {notification.title}
+        <ScrollArea className="flex-1 px-6 max-h-[calc(80vh-120px)]">
+          <div className="space-y-1 pb-6">
+            {notifications.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Bell className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                <p>No notifications yet</p>
+              </div>
+            ) : (
+              notifications.map((notification, index) => (
+                <React.Fragment key={notification.id}>
+                  <div
+                    className={`p-3 rounded-md cursor-pointer transition-colors hover:bg-accent/50 ${
+                      !notification.read ? 'bg-accent/30' : ''
+                    }`}
+                    onClick={() => markAsRead(notification.id)}
+                  >
+                    <div className="flex items-start space-x-3">
+                      {getNotificationIcon(notification.type)}
+                      <div className="flex-1 space-y-1">
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium leading-none">
+                            {notification.title}
+                          </p>
+                          {!notification.read && (
+                            <div className="h-2 w-2 bg-primary rounded-full" />
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-snug">
+                          {notification.message}
                         </p>
-                        {!notification.read && (
-                          <div className="h-2 w-2 bg-primary rounded-full" />
-                        )}
+                        <p className="text-xs text-muted-foreground">
+                          {formatTimestamp(notification.timestamp)}
+                        </p>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-snug">
-                        {notification.message}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatTimestamp(notification.timestamp)}
-                      </p>
                     </div>
                   </div>
-                </div>
-                {index < notifications.length - 1 && <Separator />}
-              </React.Fragment>
-            ))
-          )}
-        </div>
+                  {index < notifications.length - 1 && <Separator />}
+                </React.Fragment>
+              ))
+            )}
+          </div>
+        </ScrollArea>
       </DialogContent>
     </Dialog>
   );

@@ -101,6 +101,7 @@ export const FileCard = memo(function FileCard({
         className={cn(
           'group relative cursor-pointer overflow-hidden transition-all duration-200',
           'hover:shadow-lg hover:scale-[1.02]',
+          'rounded-xl',
           isSelected && 'ring-2 ring-primary shadow-lg',
           isDragging && 'opacity-50 cursor-grabbing'
         )}

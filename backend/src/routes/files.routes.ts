@@ -19,6 +19,7 @@ router.post('/:id/duplicate', FilesController.duplicateFile);
 router.put('/:id/star', FilesController.toggleStar);
 
 // File metadata endpoints
+router.get('/stats', FilesController.getLibraryStats);
 router.get('/list', FilesController.listFiles);
 router.get('/:id', FilesController.getFile);
 router.put('/:id', FilesController.updateFile);

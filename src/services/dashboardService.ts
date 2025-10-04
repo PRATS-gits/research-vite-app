@@ -99,11 +99,11 @@ function getFallbackDashboardStats(): DashboardStats {
 
 /**
  * Fetch library statistics
- * Uses existing files API for accurate counts
+ * Uses dedicated stats endpoint for accurate counts
  */
 export async function fetchLibraryStats() {
   try {
-    const response = await fetch(`${API_BASE_URL}/api/files/list?limit=1`);
+    const response = await fetch(`${API_BASE_URL}/api/files/stats`);
     
     if (!response.ok) {
       return { totalFiles: 0, totalFolders: 0, totalSize: 0 };
@@ -111,10 +111,14 @@ export async function fetchLibraryStats() {
     
     const result = await response.json();
     
+    if (!result.success || !result.data) {
+      return { totalFiles: 0, totalFolders: 0, totalSize: 0 };
+    }
+    
     return {
-      totalFiles: result.data?.total || 0,
-      totalFolders: result.data?.folders?.length || 0,
-      totalSize: result.data?.totalSize || 0,
+      totalFiles: result.data.totalFiles || 0,
+      totalFolders: result.data.totalFolders || 0,
+      totalSize: result.data.totalSize || 0,
     };
   } catch (error) {
     console.error('Library stats fetch error:', error);

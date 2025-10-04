@@ -173,10 +173,18 @@ export class FoldersController {
       const subfolders = await FolderModel.findByParentId(folderId);
       const breadcrumb = await FolderModel.getBreadcrumb(folderId);
 
+      // Add item counts to each subfolder
+      const subfoldersWithCounts = await Promise.all(
+        subfolders.map(async (folder) => ({
+          ...folder,
+          itemCount: await FolderModel.getItemCount(folder.id)
+        }))
+      );
+
       const response: FolderContentsResponse = {
         folder: folder || { id: 'root', name: 'Home', parentId: null, path: '/', createdAt: new Date(), updatedAt: new Date() },
         files,
-        subfolders,
+        subfolders: subfoldersWithCounts,
         breadcrumb
       };
 

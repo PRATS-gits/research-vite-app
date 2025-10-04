@@ -88,6 +88,7 @@ export const FolderCard = memo(function FolderCard({
         className={cn(
           'group relative cursor-pointer overflow-hidden transition-all duration-200',
           'hover:shadow-lg hover:scale-[1.02]',
+          'rounded-xl',
           isSelected && 'ring-2 ring-primary shadow-lg',
           isDragging && 'opacity-50 cursor-grabbing',
           isOver && 'ring-2 ring-green-500 bg-green-50/50 dark:bg-green-950/20'

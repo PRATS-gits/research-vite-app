@@ -14,6 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   FileText,
   Image,
@@ -44,10 +45,10 @@ interface InfoRowProps {
 
 function InfoRow({ icon: Icon, label, value }: InfoRowProps) {
   return (
-    <div className="flex items-start gap-3 py-2">
+    <div className="flex items-start gap-2.5 py-1.5">
       <Icon className="h-4 w-4 text-muted-foreground mt-0.5" />
-      <div className="flex-1 space-y-1">
-        <p className="text-sm font-medium text-muted-foreground">{label}</p>
+      <div className="flex-1 space-y-0.5">
+        <p className="text-xs font-medium text-muted-foreground">{label}</p>
         <p className="text-sm">{value}</p>
       </div>
     </div>
@@ -117,118 +118,119 @@ export function DetailsPanel({ itemId, onClose }: DetailsPanelProps) {
     <Sheet open={true} onOpenChange={onClose} modal>
       <SheetContent 
         side="right" 
-        className="w-[400px] sm:w-[540px] overflow-y-auto" 
+        className="w-[400px] sm:w-[540px] rounded-l-2xl p-0 flex flex-col"
         onInteractOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
-        <SheetHeader>
-          <SheetTitle>Details</SheetTitle>
-          <SheetDescription>
-            Information about this {item.type}
-          </SheetDescription>
-        </SheetHeader>
+        <div className="p-6 pb-4">
+          <SheetHeader>
+            <SheetTitle>Details</SheetTitle>
+            <SheetDescription>
+              Information about this {item.type}
+            </SheetDescription>
+          </SheetHeader>
+        </div>
 
-        <div className="mt-6 space-y-6">
-          {/* Icon and name */}
-          <div className="flex flex-col items-center gap-3 py-4">
-            {getFileIcon()}
-            <div className="text-center">
-              <h3 className="text-lg font-semibold">{item.name}</h3>
-              {item.type === 'file' && (
-                <Badge variant="secondary" className="mt-2">
-                  {item.extension.toUpperCase()}
-                </Badge>
-              )}
+        <ScrollArea className="flex-1 px-6">
+          <div className="space-y-4 pb-6">
+            <div className="flex flex-col items-center gap-2 py-3">
+              {getFileIcon()}
+              <div className="text-center">
+                <h3 className="text-lg font-semibold">{item.name}</h3>
+                {item.type === 'file' && (
+                  <Badge variant="secondary" className="mt-1.5">
+                    {item.extension.toUpperCase()}
+                  </Badge>
+                )}
+              </div>
             </div>
-          </div>
 
-          <Separator />
+            <Separator />
 
-          {/* Information */}
-          <div className="space-y-1">
-            <InfoRow
-              icon={item.type === 'folder' ? Folder : FileText}
-              label="Type"
-              value={item.type === 'folder' ? 'Folder' : item.fileType.toUpperCase()}
-            />
-
-            {item.type === 'file' && (
+            <div className="space-y-0.5">
               <InfoRow
-                icon={HardDrive}
-                label="Size"
-                value={formatFileSize(item.size)}
+                icon={item.type === 'folder' ? Folder : FileText}
+                label="Type"
+                value={item.type === 'folder' ? 'Folder' : item.fileType.toUpperCase()}
               />
-            )}
 
-            {item.type === 'folder' && (
+              {item.type === 'file' && (
+                <InfoRow
+                  icon={HardDrive}
+                  label="Size"
+                  value={formatFileSize(item.size)}
+                />
+              )}
+
+              {item.type === 'folder' && (
+                <InfoRow
+                  icon={FileText}
+                  label="Items"
+                  value={`${item.itemCount} items`}
+                />
+              )}
+
               <InfoRow
-                icon={FileText}
-                label="Items"
-                value={`${item.itemCount} items`}
+                icon={Calendar}
+                label="Created"
+                value={format(item.createdAt, 'PPP p')}
               />
-            )}
 
-            <InfoRow
-              icon={Calendar}
-              label="Created"
-              value={format(item.createdAt, 'PPP p')}
-            />
+              <InfoRow
+                icon={Calendar}
+                label="Modified"
+                value={format(item.updatedAt, 'PPP p')}
+              />
 
-            <InfoRow
-              icon={Calendar}
-              label="Modified"
-              value={format(item.updatedAt, 'PPP p')}
-            />
+              <InfoRow
+                icon={User}
+                label="Owner"
+                value="Research User"
+              />
 
-            <InfoRow
-              icon={User}
-              label="Owner"
-              value="Research User"
-            />
+              <InfoRow
+                icon={MapPin}
+                label="Location"
+                value={getLocationPath()}
+              />
+            </div>
 
-            <InfoRow
-              icon={MapPin}
-              label="Location"
-              value={getLocationPath()}
-            />
-          </div>
+            <Separator />
 
-          <Separator />
+            <div className="space-y-2">
+              {item.type === 'file' && (
+                <Button
+                  onClick={handleDownload}
+                  disabled={isDownloading}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  {isDownloading ? 'Downloading...' : 'Download'}
+                </Button>
+              )}
 
-          {/* Actions */}
-          <div className="space-y-2">
-            {item.type === 'file' && (
               <Button
-                onClick={handleDownload}
-                disabled={isDownloading}
+                onClick={handleStar}
+                disabled={isStarring}
                 className="w-full"
                 variant="outline"
               >
-                <Download className="mr-2 h-4 w-4" />
-                {isDownloading ? 'Downloading...' : 'Download'}
+                <Star
+                  className={`mr-2 h-4 w-4 ${item.starred ? 'fill-yellow-400 text-yellow-400' : ''}`}
+                />
+                {item.starred ? 'Remove from Starred' : 'Add to Starred'}
               </Button>
-            )}
 
-            <Button
-              onClick={handleStar}
-              disabled={isStarring}
-              className="w-full"
-              variant="outline"
-            >
-              <Star
-                className={`mr-2 h-4 w-4 ${item.starred ? 'fill-yellow-400 text-yellow-400' : ''}`}
-              />
-              {item.starred ? 'Remove from Starred' : 'Add to Starred'}
-            </Button>
-
-            {item.type === 'file' && (
-              <Button className="w-full" variant="outline" disabled>
-                <Share2 className="mr-2 h-4 w-4" />
-                Share (Coming Soon)
-              </Button>
-            )}
+              {item.type === 'file' && (
+                <Button className="w-full" variant="outline" disabled>
+                  <Share2 className="mr-2 h-4 w-4" />
+                  Share (Coming Soon)
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
+        </ScrollArea>
       </SheetContent>
     </Sheet>
   );

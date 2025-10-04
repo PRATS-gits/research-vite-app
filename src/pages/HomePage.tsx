@@ -77,7 +77,7 @@ export function HomePage() {
         type: 'library',
         title: 'Library',
         value: stats.library.totalFiles + stats.library.totalFolders,
-        description: 'Documents and resources',
+        description: `${stats.library.totalFiles} files, ${stats.library.totalFolders} folders`,
         icon: '📚',
         navigateTo: '/library',
         status: 'operational',

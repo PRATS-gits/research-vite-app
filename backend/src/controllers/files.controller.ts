@@ -155,9 +155,17 @@ export class FilesController {
       // Get folders for the same folder
       const folders = await FolderModel.findByParentId(folderId as string || null);
 
+      // Add item counts to each folder
+      const foldersWithCounts = await Promise.all(
+        folders.map(async (folder) => ({
+          ...folder,
+          itemCount: await FolderModel.getItemCount(folder.id)
+        }))
+      );
+
       const response: FileListResponse = {
         files: result.files,
-        folders,
+        folders: foldersWithCounts,
         total: result.total,
         page: result.page,
         limit: result.limit,
@@ -561,6 +569,37 @@ export class FilesController {
         success: false,
         error: error instanceof Error ? error.message : 'Internal server error',
         message: 'Failed to toggle star status',
+        timestamp: new Date()
+      } as ApiResponse);
+    }
+  }
+
+  /**
+   * GET /api/files/stats
+   * Get library statistics (total files, folders, size)
+   */
+  static async getLibraryStats(_req: Request, res: Response): Promise<void> {
+    try {
+      const allFiles = await FileMetadataModel.list({ page: 1, limit: 1000000 });
+      const allFolders = await FolderModel.getHierarchy();
+      
+      const totalSize = allFiles.files.reduce((sum, file) => sum + file.size, 0);
+      
+      res.status(200).json({
+        success: true,
+        data: {
+          totalFiles: allFiles.total,
+          totalFolders: allFolders.length,
+          totalSize,
+        },
+        timestamp: new Date()
+      } as ApiResponse);
+    } catch (error) {
+      console.error('Get library stats error:', error);
+      res.status(500).json({
+        success: false,
+        error: error instanceof Error ? error.message : 'Internal server error',
+        message: 'Failed to get library statistics',
         timestamp: new Date()
       } as ApiResponse);
     }

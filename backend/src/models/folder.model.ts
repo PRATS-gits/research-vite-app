@@ -246,4 +246,18 @@ export class FolderModel {
     const folders = await this.readFolders();
     return folders.filter(f => !f.deletedAt);
   }
+
+  /**
+   * Get the count of items (files + subfolders) in a folder
+   */
+  static async getItemCount(folderId: string): Promise<number> {
+    const folders = await this.readFolders();
+    const subfolders = folders.filter(f => f.parentId === folderId && !f.deletedAt);
+    
+    // We need to count files separately - import FileMetadataModel dynamically
+    const { FileMetadataModel } = await import('./fileMetadata.model.js');
+    const files = await FileMetadataModel.findByFolderId(folderId);
+    
+    return subfolders.length + files.length;
+  }
 }

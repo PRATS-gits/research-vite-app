@@ -38,13 +38,13 @@ function convertFileToLibraryItem(file: FileMetadata): LibraryItem {
   };
 }
 
-function convertFolderToLibraryItem(folder: Folder, itemCount: number = 0, childrenIds: string[] = []): LibraryItem {
+function convertFolderToLibraryItem(folder: Folder & { itemCount?: number }, itemCount?: number, childrenIds: string[] = []): LibraryItem {
   return {
     id: folder.id,
     type: 'folder',
     name: folder.name,
     parentId: folder.parentId,
-    itemCount,
+    itemCount: folder.itemCount ?? itemCount ?? 0,
     childrenIds,
     starred: folder.starred || false,
     createdAt: new Date(folder.createdAt),
