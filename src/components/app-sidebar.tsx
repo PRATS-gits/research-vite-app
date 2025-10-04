@@ -16,59 +16,16 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import {
-  Home,
-  Library,
-  Bot,
-  Link as LinkIcon,
-  Activity,
-  Settings,
-} from "lucide-react";
+import { navigationConfig } from "@/config/navigation";
 
-// Research Space navigation data
-const data = {
-  user: {
-    name: "Research User",
-    email: "researcher@university.edu",
-    avatar: "/placeholder-avatar.jpg",
-  },
-  navMain: [
-    {
-      title: "Research Space",
-      items: [
-        {
-          title: "Home",
-          url: "/",
-          icon: Home,
-        },
-        {
-          title: "Library",
-          url: "/library",
-          icon: Library,
-        },
-        {
-          title: "Agents",
-          url: "/agents",
-          icon: Bot,
-        },
-        {
-          title: "Connections",
-          url: "/connections",
-          icon: LinkIcon,
-        },
-        {
-          title: "Status",
-          url: "/status",
-          icon: Activity,
-        },
-        {
-          title: "Settings",
-          url: "/settings",
-          icon: Settings,
-        },
-      ],
-    },
-  ],
+/**
+ * Default user data
+ * TODO: Replace with dynamic user profile from backend API
+ */
+const defaultUserData = {
+  name: "Research User",
+  email: "researcher@university.edu",
+  avatar: "/placeholder-avatar.jpg",
 };
 
 function SidebarLogo() {
@@ -118,14 +75,14 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarLogo />
       </SidebarHeader>
       <SidebarContent className="-mt-2">
-        {data.navMain.map((item) => (
-          <SidebarGroup key={item.title}>
+        {navigationConfig.groups.map((group) => (
+          <SidebarGroup key={group.title}>
             <SidebarGroupLabel className="uppercase text-muted-foreground/65">
-              {item.title}
+              {group.title}
             </SidebarGroupLabel>
             <SidebarGroupContent>
               <SidebarMenu>
-                {item.items.map((navItem) => {
+                {group.items.map((navItem) => {
                   const isActive = navItem.url === '/library'
                     ? location.pathname === '/library' || location.pathname.startsWith('/library/')
                     : location.pathname === navItem.url;
@@ -157,7 +114,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         ))}
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={defaultUserData} />
       </SidebarFooter>
     </Sidebar>
   );
