@@ -21,7 +21,8 @@ const storageConfigurationSchema = z.object({
   provider: z.enum(['aws-s3', 'cloudflare-r2', 'minio'], {
     errorMap: () => ({ message: 'Provider must be aws-s3, cloudflare-r2, or minio' })
   }),
-  credentials: storageCredentialsSchema
+  credentials: storageCredentialsSchema,
+  adminPassword: z.string().optional() // Required when configuration is locked
 });
 
 // Storage test schema

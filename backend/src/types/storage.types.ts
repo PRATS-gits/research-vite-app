@@ -37,6 +37,7 @@ export interface StorageConfiguration {
 export interface StorageConfigurationRequest {
   provider: StorageProviderType;
   credentials: StorageCredentials;
+  adminPassword?: string; // Required when configuration is locked
 }
 
 export interface StorageTestRequest {

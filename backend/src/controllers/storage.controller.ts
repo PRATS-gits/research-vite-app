@@ -21,24 +21,64 @@ export class StorageController {
    */
   static async configureStorage(req: Request, res: Response): Promise<void> {
     try {
-      const { provider, credentials } = req.body as StorageConfigurationRequest;
+      const { provider, credentials, adminPassword } = req.body as StorageConfigurationRequest;
 
       // Check if configuration is locked
       const isLocked = await StorageConfigModel.isLocked();
       if (isLocked) {
-        res.status(423).json({
-          success: false,
-          error: 'Storage configuration is locked. Use admin override to reconfigure.',
-          message: 'Configuration locked',
-          timestamp: new Date()
-        } as ApiResponse);
-        return;
+        // Verify admin password when locked
+        const envAdminPassword = process.env.ADMIN_PASSWORD;
+        
+        if (!envAdminPassword) {
+          res.status(500).json({
+            success: false,
+            error: 'Admin password not configured on server',
+            message: 'Server configuration error',
+            timestamp: new Date()
+          } as ApiResponse);
+          return;
+        }
+
+        if (!adminPassword) {
+          res.status(403).json({
+            success: false,
+            error: 'Admin password required to change locked configuration',
+            message: 'Authentication required',
+            timestamp: new Date()
+          } as ApiResponse);
+          return;
+        }
+
+        // Case-sensitive password comparison
+        if (adminPassword !== envAdminPassword) {
+          res.status(401).json({
+            success: false,
+            error: 'Invalid admin password',
+            message: 'Authentication failed',
+            timestamp: new Date()
+          } as ApiResponse);
+          return;
+        }
+
+        // Password verified - remove existing lock to allow reconfiguration
+        await StorageConfigModel.removeLock();
       }
 
       // Validate credentials by testing connection
       const testResult = await StorageProviderFactory.testProvider(provider, credentials);
       
       if (!testResult.success) {
+        // If validation fails and we removed the lock, restore it
+        if (isLocked) {
+          const existingConfig = await StorageConfigModel.getConfiguration();
+          if (existingConfig) {
+            await StorageConfigModel.createLock(
+              existingConfig.id,
+              'Lock restored after failed reconfiguration attempt'
+            );
+          }
+        }
+        
         res.status(400).json({
           success: false,
           error: testResult.error || 'Connection test failed',
@@ -56,15 +96,19 @@ export class StorageController {
       // Save configuration
       const config = await StorageConfigModel.saveConfiguration(provider, encryptedCredentials);
 
-      // Create lock on first successful configuration
+      // Create/restore lock after successful configuration
       await StorageConfigModel.createLock(
         config.id,
-        'Initial configuration lock to prevent accidental provider changes'
+        isLocked 
+          ? 'Configuration updated and re-locked' 
+          : 'Initial configuration lock to prevent accidental provider changes'
       );
 
       res.status(201).json({
         success: true,
-        message: 'Storage configured successfully',
+        message: isLocked 
+          ? 'Storage provider updated successfully' 
+          : 'Storage configured successfully',
         data: {
           provider: config.provider,
           isLocked: true,

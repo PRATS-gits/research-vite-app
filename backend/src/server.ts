@@ -13,6 +13,7 @@ import storageRoutes from './routes/storage.routes.js';
 import filesRoutes from './routes/files.routes.js';
 import foldersRoutes from './routes/folders.routes.js';
 import type { ApiResponse } from './types/storage.types.js';
+import { displayRoutes } from './utils/routeDiscovery.js';
 
 // Load environment variables
 dotenv.config();
@@ -134,18 +135,7 @@ app.use((error: Error, _req: Request, res: Response, _next: NextFunction) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log('\n╭──────────────────────────────────────────────╮');
-  console.log('│  🚀 Research Space Backend API Started      │');
-  console.log('├──────────────────────────────────────────────┤');
-  console.log(`│  📍 Server URL: http://localhost:${PORT}       │`);
-  console.log(`│  🌍 Environment: ${process.env.NODE_ENV || 'development'}              │`);
-  console.log('│  📚 Endpoints:                               │');
-  console.log(`│     GET  /health                             │`);
-  console.log(`│     GET  /api/storage/status                 │`);
-  console.log(`│     POST /api/storage/configure              │`);
-  console.log(`│     POST /api/storage/test                   │`);
-  console.log(`│     DEL  /api/storage/lock                   │`);
-  console.log('╰──────────────────────────────────────────────╯\n');
+  displayRoutes();
 });
 
 export default app;
