@@ -1,125 +1,149 @@
 /**
  * File Metadata Model
- * File-based storage for file records with soft delete support
+ * Prisma-based storage for file records with soft delete support
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { PrismaClient } from '@prisma/client';
 import type { FileMetadata, FileListQuery } from '../types/files.types.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const DATA_DIR = path.join(__dirname, '../../data');
-const FILES_FILE = path.join(DATA_DIR, 'files.json');
+const prisma = new PrismaClient();
 
 export class FileMetadataModel {
-  private static async ensureDataDirectory(): Promise<void> {
-    try {
-      await fs.access(DATA_DIR);
-    } catch {
-      await fs.mkdir(DATA_DIR, { recursive: true });
-    }
-  }
-
-  private static async readFiles(): Promise<FileMetadata[]> {
-    try {
-      await this.ensureDataDirectory();
-      const data = await fs.readFile(FILES_FILE, 'utf-8');
-      const files = JSON.parse(data) as FileMetadata[];
-      return files.map(file => ({
-        ...file,
-        createdAt: new Date(file.createdAt),
-        updatedAt: new Date(file.updatedAt),
-        deletedAt: file.deletedAt ? new Date(file.deletedAt) : undefined
-      }));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return [];
-      }
-      throw error;
-    }
-  }
-
-  private static async writeFiles(files: FileMetadata[]): Promise<void> {
-    await this.ensureDataDirectory();
-    await fs.writeFile(FILES_FILE, JSON.stringify(files, null, 2), 'utf-8');
-  }
-
   static async create(fileData: Omit<FileMetadata, 'id' | 'createdAt' | 'updatedAt'>): Promise<FileMetadata> {
-    const files = await this.readFiles();
-    
-    const newFile: FileMetadata = {
-      ...fileData,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    const file = await prisma.file.create({
+      data: {
+        name: fileData.name,
+        size: fileData.size,
+        type: fileData.type,
+        s3Key: fileData.s3Key,
+        folderId: fileData.folderId || null,
+        starred: fileData.starred || false
+      }
+    });
 
-    files.push(newFile);
-    await this.writeFiles(files);
-    
-    return newFile;
+    return {
+      id: file.id,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      s3Key: file.s3Key,
+      folderId: file.folderId,
+      starred: file.starred,
+      createdAt: file.createdAt,
+      updatedAt: file.updatedAt,
+      deletedAt: file.deletedAt || undefined
+    };
   }
 
   static async findById(id: string): Promise<FileMetadata | null> {
-    const files = await this.readFiles();
-    const file = files.find(f => f.id === id && !f.deletedAt);
-    return file || null;
-  }
-
-  static async findByS3Key(s3Key: string): Promise<FileMetadata | null> {
-    const files = await this.readFiles();
-    const file = files.find(f => f.s3Key === s3Key && !f.deletedAt);
-    return file || null;
-  }
-
-  static async update(id: string, updates: Partial<FileMetadata>): Promise<FileMetadata | null> {
-    const files = await this.readFiles();
-    const index = files.findIndex(f => f.id === id && !f.deletedAt);
+    const file = await prisma.file.findFirst({
+      where: { id, deletedAt: null }
+    });
     
-    if (index === -1) {
+    if (!file) {
       return null;
     }
 
-    files[index] = {
-      ...files[index],
-      ...updates,
-      id: files[index].id, // Prevent ID change
-      createdAt: files[index].createdAt, // Prevent creation date change
-      updatedAt: new Date()
+    return {
+      id: file.id,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      s3Key: file.s3Key,
+      folderId: file.folderId,
+      starred: file.starred,
+      createdAt: file.createdAt,
+      updatedAt: file.updatedAt,
+      deletedAt: file.deletedAt || undefined
     };
+  }
 
-    await this.writeFiles(files);
-    return files[index];
+  static async findByS3Key(s3Key: string): Promise<FileMetadata | null> {
+    const file = await prisma.file.findFirst({
+      where: { s3Key, deletedAt: null }
+    });
+    
+    if (!file) {
+      return null;
+    }
+
+    return {
+      id: file.id,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      s3Key: file.s3Key,
+      folderId: file.folderId,
+      starred: file.starred,
+      createdAt: file.createdAt,
+      updatedAt: file.updatedAt,
+      deletedAt: file.deletedAt || undefined
+    };
+  }
+
+  static async update(id: string, updates: Partial<FileMetadata>): Promise<FileMetadata | null> {
+    const existing = await prisma.file.findFirst({
+      where: { id, deletedAt: null }
+    });
+    
+    if (!existing) {
+      return null;
+    }
+
+    // Prevent changing critical fields
+    const { id: _, s3Key, createdAt, deletedAt, ...safeUpdates } = updates;
+
+    const file = await prisma.file.update({
+      where: { id },
+      data: {
+        ...safeUpdates,
+        updatedAt: new Date()
+      }
+    });
+
+    return {
+      id: file.id,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      s3Key: file.s3Key,
+      folderId: file.folderId,
+      starred: file.starred,
+      createdAt: file.createdAt,
+      updatedAt: file.updatedAt,
+      deletedAt: file.deletedAt || undefined
+    };
   }
 
   static async softDelete(id: string): Promise<boolean> {
-    const files = await this.readFiles();
-    const index = files.findIndex(f => f.id === id && !f.deletedAt);
+    const file = await prisma.file.findFirst({
+      where: { id, deletedAt: null }
+    });
     
-    if (index === -1) {
+    if (!file) {
       return false;
     }
 
-    files[index].deletedAt = new Date();
-    files[index].updatedAt = new Date();
+    await prisma.file.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        updatedAt: new Date()
+      }
+    });
     
-    await this.writeFiles(files);
     return true;
   }
 
   static async hardDelete(id: string): Promise<boolean> {
-    const files = await this.readFiles();
-    const filteredFiles = files.filter(f => f.id !== id);
-    
-    if (filteredFiles.length === files.length) {
+    try {
+      await prisma.file.delete({
+        where: { id }
+      });
+      return true;
+    } catch {
       return false;
     }
-
-    await this.writeFiles(filteredFiles);
-    return true;
   }
 
   static async list(query: FileListQuery): Promise<{
@@ -129,94 +153,122 @@ export class FileMetadataModel {
     limit: number;
     totalPages: number;
   }> {
-    const files = await this.readFiles();
-    
-    // Filter by folder and soft delete
-    let filtered = files.filter(f => !f.deletedAt);
-    
+    // Build where clause
+    const where: any = {
+      deletedAt: null
+    };
+
+    // Filter by folder
     if (query.folderId !== undefined) {
-      filtered = filtered.filter(f => f.folderId === (query.folderId || null));
+      where.folderId = query.folderId || null;
     }
 
     // Search by name
     if (query.search) {
-      const searchLower = query.search.toLowerCase();
-      filtered = filtered.filter(f => f.name.toLowerCase().includes(searchLower));
+      where.name = {
+        contains: query.search,
+        mode: 'insensitive'
+      };
     }
 
-    // Sort
+    // Count total matching records
+    const total = await prisma.file.count({ where });
+
+    // Build orderBy
     const sortBy = query.sortBy || 'createdAt';
     const sortOrder = query.sortOrder || 'desc';
-    
-    filtered.sort((a, b) => {
-      let aVal: any = a[sortBy];
-      let bVal: any = b[sortBy];
-      
-      if (sortBy === 'createdAt' || sortBy === 'updatedAt') {
-        aVal = aVal.getTime();
-        bVal = bVal.getTime();
-      }
-      
-      if (sortOrder === 'asc') {
-        return aVal > bVal ? 1 : -1;
-      } else {
-        return aVal < bVal ? 1 : -1;
-      }
-    });
+    const orderBy: any = {};
+    orderBy[sortBy] = sortOrder;
 
     // Pagination
     const page = query.page || 1;
     const limit = query.limit || 50;
-    const startIndex = (page - 1) * limit;
-    const endIndex = startIndex + limit;
-    
-    const paginatedFiles = filtered.slice(startIndex, endIndex);
-    
+    const skip = (page - 1) * limit;
+
+    // Fetch paginated results
+    const files = await prisma.file.findMany({
+      where,
+      orderBy,
+      skip,
+      take: limit
+    });
+
     return {
-      files: paginatedFiles,
-      total: filtered.length,
+      files: files.map(f => ({
+        id: f.id,
+        name: f.name,
+        size: f.size,
+        type: f.type,
+        s3Key: f.s3Key,
+        folderId: f.folderId,
+        starred: f.starred,
+        createdAt: f.createdAt,
+        updatedAt: f.updatedAt,
+        deletedAt: f.deletedAt || undefined
+      })),
+      total,
       page,
       limit,
-      totalPages: Math.ceil(filtered.length / limit)
+      totalPages: Math.ceil(total / limit)
     };
   }
 
   static async findByFolderId(folderId: string | null): Promise<FileMetadata[]> {
-    const files = await this.readFiles();
-    return files.filter(f => f.folderId === folderId && !f.deletedAt);
+    const files = await prisma.file.findMany({
+      where: {
+        folderId: folderId || null,
+        deletedAt: null
+      },
+      orderBy: { name: 'asc' }
+    });
+
+    return files.map(f => ({
+      id: f.id,
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      s3Key: f.s3Key,
+      folderId: f.folderId,
+      starred: f.starred,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      deletedAt: f.deletedAt || undefined
+    }));
   }
 
   static async bulkDelete(ids: string[]): Promise<{ success: number; failed: number }> {
-    const files = await this.readFiles();
-    let success = 0;
-    
-    for (const id of ids) {
-      const index = files.findIndex(f => f.id === id && !f.deletedAt);
-      if (index !== -1) {
-        files[index].deletedAt = new Date();
-        files[index].updatedAt = new Date();
-        success++;
+    const result = await prisma.file.updateMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null
+      },
+      data: {
+        deletedAt: new Date(),
+        updatedAt: new Date()
       }
-    }
+    });
 
-    await this.writeFiles(files);
-    return { success, failed: ids.length - success };
+    return {
+      success: result.count,
+      failed: ids.length - result.count
+    };
   }
 
   static async bulkMove(ids: string[], targetFolderId: string | null): Promise<{ success: number; failed: number }> {
-    const files = await this.readFiles();
-    let success = 0;
-    
-    for (const id of ids) {
-      const index = files.findIndex(f => f.id === id && !f.deletedAt);
-      if (index !== -1) {
-        files[index].folderId = targetFolderId;
-        files[index].updatedAt = new Date();
-        success++;
+    const result = await prisma.file.updateMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null
+      },
+      data: {
+        folderId: targetFolderId,
+        updatedAt: new Date()
       }
-    }
+    });
 
-    await this.writeFiles(files);
-    return { success, failed: ids.length - success };
+    return {
+      success: result.count,
+      failed: ids.length - result.count
+    };
   }
 }

@@ -1,0 +1,83 @@
+// Research Space Backend - Prisma Schema
+// Database: SQLite (development) | PostgreSQL (production)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"  // Change to "postgresql" for Railway production
+  url      = env("DATABASE_URL")
+}
+
+// Storage Configuration
+model StorageConfig {
+  id            String   @id @default(uuid())
+  provider      String   // "minio", "aws-s3", "cloudflare-r2"
+  encryptedData String
+  iv            String
+  authTag       String
+  isLocked      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  lock          ConfigLock?
+  
+  @@map("storage_configs")
+}
+
+// Configuration Lock
+model ConfigLock {
+  id              String   @id @default(uuid())
+  configurationId String   @unique
+  lockedAt        DateTime @default(now())
+  lockedBy        String
+  reason          String
+  canOverride     Boolean  @default(false)
+  
+  config          StorageConfig @relation(fields: [configurationId], references: [id], onDelete: Cascade)
+  
+  @@map("config_locks")
+}
+
+// File Metadata
+model File {
+  id        String    @id @default(uuid())
+  name      String
+  size      Int
+  type      String
+  s3Key     String    @unique
+  folderId  String?
+  starred   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  
+  folder    Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
+  
+  @@index([folderId])
+  @@index([deletedAt])
+  @@index([starred])
+  @@map("files")
+}
+
+// Folder Hierarchy
+model Folder {
+  id        String    @id @default(uuid())
+  name      String
+  parentId  String?
+  path      String
+  starred   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  
+  parent    Folder?  @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Folder[] @relation("FolderHierarchy")
+  files     File[]
+  
+  @@index([parentId])
+  @@index([starred])
+  @@index([deletedAt])
+  @@map("folders")
+}

@@ -575,7 +575,34 @@ export const useLibraryStore = create<LibraryStoreState>((set, get) => ({
   },
   
   deleteItems: async (itemIds: string[]) => {
-    await get().bulkDelete(itemIds);
+    const items = get().items;
+    const fileIds: string[] = [];
+    const folderIds: string[] = [];
+    
+    // Separate files and folders
+    itemIds.forEach((id) => {
+      const item = items[id];
+      if (item) {
+        if (item.type === 'file') {
+          fileIds.push(id);
+        } else if (item.type === 'folder') {
+          folderIds.push(id);
+        }
+      }
+    });
+    
+    // Delete files in bulk
+    if (fileIds.length > 0) {
+      await get().bulkDelete(fileIds);
+    }
+    
+    // Delete folders individually
+    for (const folderId of folderIds) {
+      await get().deleteFolder(folderId);
+    }
+    
+    // Clear selection
+    set({ selectedItemIds: [] });
   },
   
   renameItem: async (itemId: string, newName: string) => {

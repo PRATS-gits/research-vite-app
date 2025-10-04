@@ -1,11 +1,9 @@
 /**
  * Storage Configuration Model
- * File-based storage for configuration with lock mechanism
+ * Prisma-based storage for configuration with lock mechanism
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { PrismaClient } from '@prisma/client';
 import type { 
   StorageConfiguration, 
   StorageProviderType,
@@ -13,25 +11,9 @@ import type {
   ConfigurationLock
 } from '../types/storage.types.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const DATA_DIR = path.join(__dirname, '../../data');
-const CONFIG_FILE = path.join(DATA_DIR, 'storage-config.json');
-const LOCK_FILE = path.join(DATA_DIR, 'config-lock.json');
+const prisma = new PrismaClient();
 
 export class StorageConfigModel {
-  /**
-   * Initialize data directory and files
-   */
-  private static async ensureDataDirectory(): Promise<void> {
-    try {
-      await fs.access(DATA_DIR);
-    } catch {
-      await fs.mkdir(DATA_DIR, { recursive: true });
-    }
-  }
-
   /**
    * Save storage configuration
    */
@@ -39,55 +21,88 @@ export class StorageConfigModel {
     provider: StorageProviderType,
     encryptedCredentials: EncryptedStorageCredentials
   ): Promise<StorageConfiguration> {
-    await this.ensureDataDirectory();
+    // Check if config already exists
+    const existing = await prisma.storageConfig.findFirst();
+    
+    let config;
+    if (existing) {
+      // Update existing configuration
+      config = await prisma.storageConfig.update({
+        where: { id: existing.id },
+        data: {
+          provider,
+          encryptedData: encryptedCredentials.encryptedData,
+          iv: encryptedCredentials.iv,
+          authTag: encryptedCredentials.authTag,
+          isLocked: false,
+          updatedAt: new Date()
+        }
+      });
+    } else {
+      // Create new configuration
+      config = await prisma.storageConfig.create({
+        data: {
+          provider,
+          encryptedData: encryptedCredentials.encryptedData,
+          iv: encryptedCredentials.iv,
+          authTag: encryptedCredentials.authTag,
+          isLocked: false
+        }
+      });
+    }
 
-    const config: StorageConfiguration = {
-      id: crypto.randomUUID(),
-      provider,
-      credentials: encryptedCredentials,
-      isLocked: false,
-      createdAt: new Date(),
-      updatedAt: new Date()
+    // Transform to StorageConfiguration format
+    return {
+      id: config.id,
+      provider: config.provider as StorageProviderType,
+      credentials: {
+        encryptedData: config.encryptedData,
+        iv: config.iv,
+        authTag: config.authTag
+      },
+      isLocked: config.isLocked,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt
     };
-
-    await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
-    return config;
   }
 
   /**
    * Get current storage configuration
    */
   static async getConfiguration(): Promise<StorageConfiguration | null> {
-    try {
-      await this.ensureDataDirectory();
-      const data = await fs.readFile(CONFIG_FILE, 'utf-8');
-      const config = JSON.parse(data) as StorageConfiguration;
-      
-      // Convert string dates back to Date objects
-      config.createdAt = new Date(config.createdAt);
-      config.updatedAt = new Date(config.updatedAt);
-      if (config.lastTestedAt) {
-        config.lastTestedAt = new Date(config.lastTestedAt);
-      }
-      
-      return config;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return null;
-      }
-      throw error;
+    const config = await prisma.storageConfig.findFirst({
+      include: { lock: true }
+    });
+
+    if (!config) {
+      return null;
     }
+
+    return {
+      id: config.id,
+      provider: config.provider as StorageProviderType,
+      credentials: {
+        encryptedData: config.encryptedData,
+        iv: config.iv,
+        authTag: config.authTag
+      },
+      isLocked: config.isLocked,
+      createdAt: config.createdAt,
+      updatedAt: config.updatedAt,
+      lastTestedAt: config.updatedAt // Use updatedAt as lastTestedAt proxy
+    };
   }
 
   /**
    * Update configuration's last tested timestamp
    */
   static async updateLastTested(): Promise<void> {
-    const config = await this.getConfiguration();
+    const config = await prisma.storageConfig.findFirst();
     if (config) {
-      config.lastTestedAt = new Date();
-      config.updatedAt = new Date();
-      await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
+      await prisma.storageConfig.update({
+        where: { id: config.id },
+        data: { updatedAt: new Date() }
+      });
     }
   }
 
@@ -95,12 +110,11 @@ export class StorageConfigModel {
    * Delete configuration
    */
   static async deleteConfiguration(): Promise<void> {
-    try {
-      await fs.unlink(CONFIG_FILE);
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw error;
-      }
+    const config = await prisma.storageConfig.findFirst();
+    if (config) {
+      await prisma.storageConfig.delete({
+        where: { id: config.id }
+      });
     }
   }
 
@@ -108,53 +122,64 @@ export class StorageConfigModel {
    * Create configuration lock
    */
   static async createLock(configurationId: string, reason: string): Promise<ConfigurationLock> {
-    await this.ensureDataDirectory();
+    // Delete existing lock if any
+    await prisma.configLock.deleteMany({
+      where: { configurationId }
+    });
 
-    const lock: ConfigurationLock = {
-      id: crypto.randomUUID(),
-      configurationId,
-      lockedAt: new Date(),
-      lockedBy: 'system',
-      reason,
-      canOverride: false
-    };
-
-    await fs.writeFile(LOCK_FILE, JSON.stringify(lock, null, 2), 'utf-8');
+    // Create new lock
+    const lock = await prisma.configLock.create({
+      data: {
+        configurationId,
+        lockedBy: 'system',
+        reason,
+        canOverride: false
+      }
+    });
 
     // Update configuration lock status
-    const config = await this.getConfiguration();
-    if (config) {
-      config.isLocked = true;
-      config.updatedAt = new Date();
-      await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
-    }
+    await prisma.storageConfig.update({
+      where: { id: configurationId },
+      data: { isLocked: true }
+    });
 
-    return lock;
+    return {
+      id: lock.id,
+      configurationId: lock.configurationId,
+      lockedAt: lock.lockedAt,
+      lockedBy: lock.lockedBy,
+      reason: lock.reason,
+      canOverride: lock.canOverride
+    };
   }
 
   /**
    * Get configuration lock
    */
   static async getLock(): Promise<ConfigurationLock | null> {
-    try {
-      await this.ensureDataDirectory();
-      const data = await fs.readFile(LOCK_FILE, 'utf-8');
-      const lock = JSON.parse(data) as ConfigurationLock;
-      lock.lockedAt = new Date(lock.lockedAt);
-      return lock;
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return null;
-      }
-      throw error;
+    const lock = await prisma.configLock.findFirst();
+    
+    if (!lock) {
+      return null;
     }
+
+    return {
+      id: lock.id,
+      configurationId: lock.configurationId,
+      lockedAt: lock.lockedAt,
+      lockedBy: lock.lockedBy,
+      reason: lock.reason,
+      canOverride: lock.canOverride
+    };
   }
 
   /**
    * Check if configuration is locked
    */
   static async isLocked(): Promise<boolean> {
-    const config = await this.getConfiguration();
+    const config = await prisma.storageConfig.findFirst({
+      select: { isLocked: true }
+    });
     return config?.isLocked ?? false;
   }
 
@@ -162,19 +187,18 @@ export class StorageConfigModel {
    * Remove lock (admin override)
    */
   static async removeLock(): Promise<void> {
-    try {
-      await fs.unlink(LOCK_FILE);
-      
-      const config = await this.getConfiguration();
-      if (config) {
-        config.isLocked = false;
-        config.updatedAt = new Date();
-        await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2), 'utf-8');
-      }
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        throw error;
-      }
+    const config = await prisma.storageConfig.findFirst();
+    if (config) {
+      // Delete the lock
+      await prisma.configLock.deleteMany({
+        where: { configurationId: config.id }
+      });
+
+      // Update configuration lock status
+      await prisma.storageConfig.update({
+        where: { id: config.id },
+        data: { isLocked: false }
+      });
     }
   }
 }

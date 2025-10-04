@@ -1,58 +1,23 @@
 /**
  * Folder Model
- * File-based storage for folder hierarchy with breadcrumb support
+ * Prisma-based storage for folder hierarchy with breadcrumb support
  */
 
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import { PrismaClient } from '@prisma/client';
 import type { Folder, BreadcrumbItem } from '../types/files.types.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const DATA_DIR = path.join(__dirname, '../../data');
-const FOLDERS_FILE = path.join(DATA_DIR, 'folders.json');
+const prisma = new PrismaClient();
 
 export class FolderModel {
-  private static async ensureDataDirectory(): Promise<void> {
-    try {
-      await fs.access(DATA_DIR);
-    } catch {
-      await fs.mkdir(DATA_DIR, { recursive: true });
-    }
-  }
-
-  private static async readFolders(): Promise<Folder[]> {
-    try {
-      await this.ensureDataDirectory();
-      const data = await fs.readFile(FOLDERS_FILE, 'utf-8');
-      const folders = JSON.parse(data) as Folder[];
-      return folders.map(folder => ({
-        ...folder,
-        createdAt: new Date(folder.createdAt),
-        updatedAt: new Date(folder.updatedAt),
-        deletedAt: folder.deletedAt ? new Date(folder.deletedAt) : undefined
-      }));
-    } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        return [];
-      }
-      throw error;
-    }
-  }
-
-  private static async writeFolders(folders: Folder[]): Promise<void> {
-    await this.ensureDataDirectory();
-    await fs.writeFile(FOLDERS_FILE, JSON.stringify(folders, null, 2), 'utf-8');
-  }
-
-  private static async buildPath(folderId: string | null, folders: Folder[]): Promise<string> {
+  private static async buildPath(folderId: string | null): Promise<string> {
     if (!folderId) {
       return '/';
     }
 
-    const folder = folders.find(f => f.id === folderId);
+    const folder = await prisma.folder.findUnique({
+      where: { id: folderId }
+    });
+
     if (!folder) {
       return '/';
     }
@@ -61,147 +26,220 @@ export class FolderModel {
       return `/${folder.name}`;
     }
 
-    const parentPath = await this.buildPath(folder.parentId, folders);
+    const parentPath = await this.buildPath(folder.parentId);
     return `${parentPath}/${folder.name}`;
   }
 
   static async create(name: string, parentId: string | null): Promise<Folder> {
-    const folders = await this.readFolders();
-    
     // Validate parent exists if specified
     if (parentId) {
-      const parent = folders.find(f => f.id === parentId && !f.deletedAt);
+      const parent = await prisma.folder.findFirst({
+        where: { id: parentId, deletedAt: null }
+      });
       if (!parent) {
         throw new Error('Parent folder not found');
       }
     }
 
     // Check for duplicate name in same parent
-    const duplicate = folders.find(
-      f => f.name === name && f.parentId === parentId && !f.deletedAt
-    );
+    const duplicate = await prisma.folder.findFirst({
+      where: {
+        name,
+        parentId,
+        deletedAt: null
+      }
+    });
     if (duplicate) {
       throw new Error('Folder with this name already exists in this location');
     }
 
-    const path = await this.buildPath(parentId, folders);
+    const path = await this.buildPath(parentId);
     const fullPath = parentId ? `${path}/${name}` : `/${name}`;
 
-    const newFolder: Folder = {
-      id: crypto.randomUUID(),
-      name,
-      parentId,
-      path: fullPath,
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+    const newFolder = await prisma.folder.create({
+      data: {
+        name,
+        parentId,
+        path: fullPath
+      }
+    });
 
-    folders.push(newFolder);
-    await this.writeFolders(folders);
-    
-    return newFolder;
+    return {
+      id: newFolder.id,
+      name: newFolder.name,
+      parentId: newFolder.parentId,
+      path: newFolder.path,
+      createdAt: newFolder.createdAt,
+      updatedAt: newFolder.updatedAt,
+      deletedAt: newFolder.deletedAt || undefined
+    };
   }
 
   static async findById(id: string): Promise<Folder | null> {
-    const folders = await this.readFolders();
-    const folder = folders.find(f => f.id === id && !f.deletedAt);
-    return folder || null;
-  }
-
-  static async findByParentId(parentId: string | null): Promise<Folder[]> {
-    const folders = await this.readFolders();
-    return folders.filter(f => f.parentId === parentId && !f.deletedAt);
-  }
-
-  static async update(id: string, name: string): Promise<Folder | null> {
-    const folders = await this.readFolders();
-    const index = folders.findIndex(f => f.id === id && !f.deletedAt);
+    const folder = await prisma.folder.findFirst({
+      where: { id, deletedAt: null }
+    });
     
-    if (index === -1) {
+    if (!folder) {
       return null;
     }
 
-    const folder = folders[index];
+    return {
+      id: folder.id,
+      name: folder.name,
+      parentId: folder.parentId,
+      path: folder.path,
+      createdAt: folder.createdAt,
+      updatedAt: folder.updatedAt,
+      deletedAt: folder.deletedAt || undefined
+    };
+  }
+
+  static async findByParentId(parentId: string | null): Promise<Folder[]> {
+    const folders = await prisma.folder.findMany({
+      where: { parentId, deletedAt: null },
+      orderBy: { name: 'asc' }
+    });
+
+    return folders.map(f => ({
+      id: f.id,
+      name: f.name,
+      parentId: f.parentId,
+      path: f.path,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      deletedAt: f.deletedAt || undefined
+    }));
+  }
+
+  static async update(id: string, name: string): Promise<Folder | null> {
+    const folder = await prisma.folder.findFirst({
+      where: { id, deletedAt: null }
+    });
     
+    if (!folder) {
+      return null;
+    }
+
     // Check for duplicate name in same parent
-    const duplicate = folders.find(
-      f => f.name === name && f.parentId === folder.parentId && f.id !== id && !f.deletedAt
-    );
+    const duplicate = await prisma.folder.findFirst({
+      where: {
+        name,
+        parentId: folder.parentId,
+        id: { not: id },
+        deletedAt: null
+      }
+    });
     if (duplicate) {
       throw new Error('Folder with this name already exists in this location');
     }
 
     // Update folder name
-    folders[index].name = name;
-    folders[index].updatedAt = new Date();
+    await prisma.folder.update({
+      where: { id },
+      data: {
+        name,
+        updatedAt: new Date()
+      }
+    });
     
-    // Rebuild path for this folder and all descendants
-    await this.rebuildPaths(folders);
+    // Rebuild paths for this folder and all descendants
+    await this.rebuildPaths(id);
     
-    await this.writeFolders(folders);
-    return folders[index];
+    // Fetch updated folder with rebuilt path
+    const final = await prisma.folder.findUnique({ where: { id } });
+    if (!final) return null;
+
+    return {
+      id: final.id,
+      name: final.name,
+      parentId: final.parentId,
+      path: final.path,
+      createdAt: final.createdAt,
+      updatedAt: final.updatedAt,
+      deletedAt: final.deletedAt || undefined
+    };
   }
 
   static async updateMetadata(id: string, updates: Partial<Folder>): Promise<Folder | null> {
-    const folders = await this.readFolders();
-    const index = folders.findIndex(f => f.id === id && !f.deletedAt);
+    const folder = await prisma.folder.findFirst({
+      where: { id, deletedAt: null }
+    });
     
-    if (index === -1) {
+    if (!folder) {
       return null;
     }
 
     // Prevent changing critical fields
-    const { id: _, parentId, path, createdAt, ...safeUpdates } = updates;
+    const { id: _, parentId, path, createdAt, deletedAt, ...safeUpdates } = updates;
 
-    folders[index] = {
-      ...folders[index],
-      ...safeUpdates,
-      updatedAt: new Date()
+    const updated = await prisma.folder.update({
+      where: { id },
+      data: {
+        ...safeUpdates,
+        updatedAt: new Date()
+      }
+    });
+
+    return {
+      id: updated.id,
+      name: updated.name,
+      parentId: updated.parentId,
+      path: updated.path,
+      createdAt: updated.createdAt,
+      updatedAt: updated.updatedAt,
+      deletedAt: updated.deletedAt || undefined
     };
-
-    await this.writeFolders(folders);
-    return folders[index];
   }
 
-  private static async rebuildPaths(folders: Folder[]): Promise<void> {
-    for (const folder of folders) {
-      if (!folder.deletedAt) {
-        folder.path = await this.buildPath(folder.id, folders);
-      }
+  private static async rebuildPaths(startFolderId: string): Promise<void> {
+    const descendants = await this.getDescendantIds(startFolderId);
+    descendants.push(startFolderId);
+
+    for (const folderId of descendants) {
+      const newPath = await this.buildPath(folderId);
+      await prisma.folder.update({
+        where: { id: folderId },
+        data: { path: newPath }
+      });
     }
   }
 
   static async softDelete(id: string): Promise<boolean> {
-    const folders = await this.readFolders();
-    const index = folders.findIndex(f => f.id === id && !f.deletedAt);
+    const folder = await prisma.folder.findFirst({
+      where: { id, deletedAt: null }
+    });
     
-    if (index === -1) {
+    if (!folder) {
       return false;
     }
 
+    // Get all descendants
+    const descendants = await this.getDescendantIds(id);
+    const toDelete = [id, ...descendants];
+
     // Mark folder and all descendants as deleted
-    const toDelete = await this.getDescendants(id, folders);
-    toDelete.push(id);
-
-    for (const folderId of toDelete) {
-      const folderIndex = folders.findIndex(f => f.id === folderId);
-      if (folderIndex !== -1) {
-        folders[folderIndex].deletedAt = new Date();
-        folders[folderIndex].updatedAt = new Date();
+    await prisma.folder.updateMany({
+      where: { id: { in: toDelete } },
+      data: {
+        deletedAt: new Date(),
+        updatedAt: new Date()
       }
-    }
+    });
 
-    await this.writeFolders(folders);
     return true;
   }
 
-  private static async getDescendants(folderId: string, folders: Folder[]): Promise<string[]> {
+  private static async getDescendantIds(folderId: string): Promise<string[]> {
     const descendants: string[] = [];
-    const children = folders.filter(f => f.parentId === folderId && !f.deletedAt);
+    const children = await prisma.folder.findMany({
+      where: { parentId: folderId, deletedAt: null },
+      select: { id: true }
+    });
     
     for (const child of children) {
       descendants.push(child.id);
-      const childDescendants = await this.getDescendants(child.id, folders);
+      const childDescendants = await this.getDescendantIds(child.id);
       descendants.push(...childDescendants);
     }
 
@@ -213,9 +251,7 @@ export class FolderModel {
       return [];
     }
 
-    const folders = await this.readFolders();
     const breadcrumb: BreadcrumbItem[] = [];
-
     let currentId: string | null = folderId;
     const visited = new Set<string>();
 
@@ -225,7 +261,11 @@ export class FolderModel {
       }
       visited.add(currentId);
 
-      const folder = folders.find(f => f.id === currentId && !f.deletedAt);
+      const folder: { id: string; name: string; path: string; parentId: string | null } | null = await prisma.folder.findFirst({
+        where: { id: currentId, deletedAt: null },
+        select: { id: true, name: true, path: true, parentId: true }
+      });
+      
       if (!folder) {
         break;
       }
@@ -243,21 +283,34 @@ export class FolderModel {
   }
 
   static async getHierarchy(): Promise<Folder[]> {
-    const folders = await this.readFolders();
-    return folders.filter(f => !f.deletedAt);
+    const folders = await prisma.folder.findMany({
+      where: { deletedAt: null },
+      orderBy: { path: 'asc' }
+    });
+
+    return folders.map(f => ({
+      id: f.id,
+      name: f.name,
+      parentId: f.parentId,
+      path: f.path,
+      createdAt: f.createdAt,
+      updatedAt: f.updatedAt,
+      deletedAt: f.deletedAt || undefined
+    }));
   }
 
   /**
    * Get the count of items (files + subfolders) in a folder
    */
   static async getItemCount(folderId: string): Promise<number> {
-    const folders = await this.readFolders();
-    const subfolders = folders.filter(f => f.parentId === folderId && !f.deletedAt);
+    const subfolderCount = await prisma.folder.count({
+      where: { parentId: folderId, deletedAt: null }
+    });
+
+    const fileCount = await prisma.file.count({
+      where: { folderId, deletedAt: null }
+    });
     
-    // We need to count files separately - import FileMetadataModel dynamically
-    const { FileMetadataModel } = await import('./fileMetadata.model.js');
-    const files = await FileMetadataModel.findByFolderId(folderId);
-    
-    return subfolders.length + files.length;
+    return subfolderCount + fileCount;
   }
 }
