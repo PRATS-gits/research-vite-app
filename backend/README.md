@@ -1,1145 +1,952 @@
 # Research Space Backend API
 
-Backend API for Research Space - A modern, production-ready file management system with S3-compatible storage, powered by Prisma ORM and TypeScript.
+**Modern S3-Compatible Storage Management Backend**
 
-## ✨ Latest Updates (October 2025)
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
+[![Express](https://img.shields.io/badge/Express-4.21-lightgrey.svg)](https://expressjs.com/)
+[![Prisma](https://img.shields.io/badge/Prisma-6.16-2D3748.svg)](https://www.prisma.io/)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**🎉 Phase 2 Complete**: Successfully migrated from JSON file storage to **Prisma ORM** with SQLite (development) and PostgreSQL (production) support!
+---
 
-- ✅ **Database Migration**: All data models refactored to Prisma
-- ✅ **Performance**: 6-10x faster queries with database indexes
-- ✅ **Type Safety**: End-to-end type safety with Prisma Client
-- ✅ **Production Ready**: Railway PostgreSQL deployment configured
-- ✅ **Zero Breaking Changes**: All API endpoints maintain compatibility
+## 📋 Table of Contents
 
-## 🚀 Features
+- [Overview](#overview)
+- [Features](#features)
+- [Architecture](#architecture)
+- [Quick Start](#quick-start)
+- [Project Structure](#project-structure)
+- [Environment Configuration](#environment-configuration)
+- [Database Setup](#database-setup)
+- [API Endpoints](#api-endpoints)
+- [Development](#development)
+- [Deployment](#deployment)
+- [Documentation](#documentation)
+- [Contributing](#contributing)
 
-### Core Storage Features
-- **Multi-Provider Support**: AWS S3, Cloudflare R2, MinIO
-- **Secure Credential Storage**: AES-256-GCM encryption with database persistence
-- **Connection Testing**: Comprehensive bucket testing (read/write/CORS/multipart)
-- **Configuration Lock**: Database-backed locking prevents accidental changes
-- **Admin Password Protection**: Secure administrative operations
+---
 
-### File Management Features
-- **Presigned URLs**: Direct upload/download with time-limited URLs
-- **File Operations**: Upload, download, rename, move, delete
-- **Folder Hierarchy**: Nested folders with automatic path management
-- **Bulk Operations**: Efficient batch move and delete operations
-- **Context Menu Operations**: Share links, duplicate files, star/favorite items
-- **File Metadata**: Comprehensive tracking with S3 key indexing
-- **Soft Deletes**: Safe deletion with recovery capability
+## Overview
 
-### Database & Architecture
-- **Prisma ORM**: Type-safe database queries with migrations
-- **SQLite**: Fast local development with 72KB database
-- **PostgreSQL**: Production-ready with Railway deployment
-- **Relational Models**: Foreign keys and cascading operations
-- **Indexed Queries**: Optimized lookups for folders, files, and timestamps
-- **Transaction Support**: Atomic operations for data integrity
+Research Space Backend is a production-ready Express.js API server that provides secure file storage management with support for multiple S3-compatible providers (AWS S3, Cloudflare R2, MinIO). Built with TypeScript, Prisma ORM, and modern security practices.
+
+### Key Highlights
+
+- 🗄️ **Prisma ORM**: Type-safe database operations with PostgreSQL/SQLite
+- 🔐 **Secure Storage**: AES-256-GCM encryption for credentials
+- 📁 **Folder Hierarchy**: Unlimited nesting with breadcrumb navigation
+- 🚀 **Presigned URLs**: Direct S3 uploads without backend bandwidth
+- 🎯 **Soft Delete**: Data recovery with soft delete mechanism
+- ⚡ **High Performance**: 6-10x faster than JSON storage
+- 🔄 **Bulk Operations**: Efficient multi-file operations
+- 📊 **Context Menu**: Share links, duplicate files, star favorites
+
+---
+
+## Features
+
+### Storage Management
+
+- ✅ Multi-provider support (AWS S3, Cloudflare R2, MinIO)
+- ✅ Encrypted credential storage (AES-256-GCM)
+- ✅ Connection testing and validation
+- ✅ Configuration locking mechanism
+
+### File Operations
+
+- ✅ Presigned upload URLs (direct S3 upload)
+- ✅ Presigned download URLs (time-limited access)
+- ✅ File metadata management (CRUD)
+- ✅ Bulk delete and move operations
+- ✅ File duplication (S3 server-side copy)
+- ✅ Star/favorite functionality
+- ✅ Shareable public links
+- ✅ Pagination and filtering (50 items/page)
+- ✅ Soft delete with recovery option
+
+### Folder Management
+
+- ✅ Unlimited folder nesting
+- ✅ Folder hierarchy with breadcrumb
+- ✅ Recursive folder operations
+- ✅ Folder contents listing
+- ✅ Rename and reorganization
+- ✅ Soft delete (cascading)
 
 ### Security & Performance
-- **API Key Authentication**: Secure endpoint protection
-- **Rate Limiting**: DDoS protection (100 req/15min)
-- **TypeScript Strict Mode**: Type-safe implementation
-- **Comprehensive Validation**: Zod schema validation
-- **CORS Configured**: Frontend integration ready
-- **File Duplication**: S3-native copy operations (zero bandwidth)
-- **Database Connection Pooling**: Efficient resource management
 
-## 📋 Prerequisites
+- ✅ Helmet.js security headers
+- ✅ Rate limiting (100 req/15min)
+- ✅ CORS protection
+- ✅ Request compression
+- ✅ TypeScript strict mode
+- ✅ Input validation (Joi)
+- ✅ Error handling middleware
 
-- **Node.js**: 18.0 or higher
-- **npm**: 9.0 or higher
-- **Database**: SQLite (auto-created) or PostgreSQL (production)
-- **Storage**: S3-compatible storage provider (AWS S3, Cloudflare R2, or MinIO)
+---
 
-## 🛠️ Installation
+## Architecture
 
-### 1. Install Dependencies
+### Technology Stack
+
+```
+┌─────────────────────────────────────────────────────┐
+│                  Express.js 4.21                    │
+│                  (TypeScript 5.7)                   │
+├─────────────────────────────────────────────────────┤
+│                                                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
+│  │  Controllers │  │   Services   │  │  Models  │ │
+│  │              │  │              │  │          │ │
+│  │  - Storage   │  │  - Presigned │  │  Prisma  │ │
+│  │  - Files     │  │    URL       │  │   ORM    │ │
+│  │  - Folders   │  │  - Encryption│  │          │ │
+│  │              │  │  - S3/R2     │  │          │ │
+│  └──────┬───────┘  └──────┬───────┘  └────┬─────┘ │
+│         │                 │               │       │
+│         └─────────────────┴───────────────┘       │
+│                          │                        │
+├──────────────────────────┼────────────────────────┤
+│                          │                        │
+│              ┌───────────▼──────────┐             │
+│              │  PostgreSQL / SQLite │             │
+│              │   (Prisma Client)    │             │
+│              └──────────────────────┘             │
+│                                                     │
+│              ┌──────────────────────┐             │
+│              │  S3-Compatible       │             │
+│              │  Storage Providers   │             │
+│              │  - AWS S3            │             │
+│              │  - Cloudflare R2     │             │
+│              │  - MinIO             │             │
+│              └──────────────────────┘             │
+└─────────────────────────────────────────────────────┘
+```
+
+### Data Flow
+
+**File Upload Flow:**
+```
+1. Frontend → POST /api/files/presigned-url
+2. Backend generates presigned URL (S3)
+3. Backend saves metadata → Prisma → PostgreSQL
+4. Frontend uploads directly to S3 (no backend bandwidth)
+5. Upload complete → File accessible via download URL
+```
+
+**File Download Flow:**
+```
+1. Frontend → POST /api/files/:id/download-url
+2. Backend validates file exists (Prisma)
+3. Backend generates time-limited presigned URL (S3)
+4. Frontend downloads directly from S3
+```
+
+---
+
+## Quick Start
+
+### Prerequisites
+
+- **Node.js** 18+ ([Download](https://nodejs.org/))
+- **PostgreSQL** 15+ (production) or **SQLite** (development)
+- **Git** ([Download](https://git-scm.com/))
+- **S3-compatible storage** account (AWS S3, Cloudflare R2, or MinIO)
+
+### Installation
+
+**1. Clone Repository**
 
 ```bash
-cd backend
+git clone https://github.com/PRATS-gits/research-vite-app.git
+cd research-vite-app/backend
+```
+
+**2. Install Dependencies**
+
+```bash
 npm install
 ```
 
-This installs:
-- Express.js framework
-- Prisma ORM + Client
-- AWS SDK for S3
-- TypeScript toolchain
-- Security middleware (Helmet, CORS, Rate Limiting)
-
-### 2. Setup Database
-
-```bash
-# Generate Prisma Client
-npx prisma generate
-
-# Run migrations (creates SQLite database)
-npx prisma migrate dev
-```
-
-This creates `data/database.db` with the following schema:
-- `StorageConfig` - Storage provider configurations
-- `ConfigLock` - Configuration locking mechanism
-- `File` - File metadata with S3 keys
-- `Folder` - Hierarchical folder structure
-
-### 3. Configure Environment
+**3. Environment Setup**
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your settings:
+Edit `.env` with your configuration:
 
-```env
-# Server Configuration
+```bash
+# Generate secure keys
+node -e "console.log(require('crypto').randomBytes(32).toString('base64').slice(0, 32))"
+
+# Example .env
+DATABASE_URL="file:./data/database.db"  # SQLite for development
+ENCRYPTION_KEY="your-32-char-encryption-key"
+API_KEY="your-api-key-here"
+ADMIN_PASSWORD="your-admin-password"
 PORT=3001
 NODE_ENV=development
-
-# Security Keys
-ENCRYPTION_KEY=your-32-character-encryption-key-here
-API_KEY=your-api-key-for-basic-auth
-ADMIN_PASSWORD=your-admin-password-for-lock-operations
-
-# Database
-DATABASE_URL="file:./data/database.db"  # SQLite for development
-# DATABASE_URL="postgresql://..." # PostgreSQL for production
-
-# CORS & Logging
-CORS_ORIGIN=http://localhost:5173
-LOG_LEVEL=info
+CORS_ORIGIN="http://localhost:5173"
 ```
 
-**Generate Secure Keys:**
+**4. Database Setup**
 
 ```bash
-# Generate encryption key (32 bytes, 64 hex characters)
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+# Generate Prisma Client
+npx prisma generate
 
-# Generate API key (32 bytes, base64 encoded)
-node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
+# Run migrations
+npx prisma migrate deploy
 
-# Generate admin password (cryptographically secure)
-node -e "console.log(require('crypto').randomBytes(32).toString('base64url'))"
+# (Optional) Seed database
+npm run db:seed
 ```
 
-### 4. Build TypeScript
-
-```bash
-npm run build
-```
-
-Compiles TypeScript to `dist/` directory.
-
-## 📁 Project Structure
-
-```
-backend/
-├── src/
-│   ├── config/              # Configuration files
-│   ├── controllers/         # Request handlers
-│   │   ├── files.controller.ts
-│   │   ├── folders.controller.ts
-│   │   └── storage.controller.ts
-│   ├── middleware/          # Express middleware
-│   │   ├── auth.middleware.ts
-│   │   └── validation.middleware.ts
-│   ├── models/              # Prisma data models
-│   │   ├── fileMetadata.model.ts    # File operations
-│   │   ├── folder.model.ts          # Folder hierarchy
-│   │   ├── storageConfig.model.ts   # Storage config & locks
-│   │   └── uploadQueue.model.ts     # Upload queue management
-│   ├── routes/              # API route definitions
-│   │   ├── files.routes.ts
-│   │   ├── folders.routes.ts
-│   │   └── storage.routes.ts
-│   ├── services/            # Business logic
-│   │   ├── encryption.service.ts        # AES-256-GCM encryption
-│   │   ├── presignedUrl.service.ts      # S3 presigned URLs
-│   │   ├── storageProvider.service.ts   # Multi-provider interface
-│   │   ├── s3Provider.service.ts        # AWS S3 implementation
-│   │   ├── r2Provider.service.ts        # Cloudflare R2 implementation
-│   │   └── minioProvider.service.ts     # MinIO implementation
-│   ├── types/               # TypeScript type definitions
-│   │   ├── files.types.ts
-│   │   └── storage.types.ts
-│   ├── utils/               # Utility functions
-│   │   └── routeDiscovery.ts           # API endpoint display
-│   ├── scripts/             # Database & maintenance scripts
-│   │   ├── migrate-json-to-db.ts       # Data migration script
-│   │   └── verify-migration.ts         # Migration verification
-│   └── server.ts            # Express server entry point
-├── prisma/
-│   ├── schema.prisma        # Database schema definition
-│   └── migrations/          # Database migration history
-│       ├── 20251004161543_init/
-│       └── 20251004162826_add_folder_soft_delete/
-├── data/
-│   ├── database.db          # SQLite database file
-│   └── .backup/             # JSON file backups
-├── docs/                    # Documentation
-│   ├── API_DOCUMENTATION.md
-│   ├── PHASE2C_2D_COMPLETION.md
-│   └── ...
-├── dist/                    # Compiled JavaScript (gitignored)
-├── .env                     # Environment variables (gitignored)
-├── .env.example             # Environment template
-├── package.json             # Dependencies and scripts
-├── tsconfig.json            # TypeScript configuration
-└── README.md                # This file
-```
-
-### Key Directories
-
-**`src/models/`** - Database models using Prisma ORM
-- All file I/O replaced with database queries
-- Type-safe operations with Prisma Client
-- Support for transactions and relations
-
-**`prisma/`** - Database configuration
-- Schema defines 4 models: StorageConfig, ConfigLock, File, Folder
-- Migrations track schema changes over time
-- Supports SQLite (dev) and PostgreSQL (prod)
-
-**`src/services/`** - S3 provider implementations
-- Abstract storage interface for multi-provider support
-- Presigned URL generation for secure uploads/downloads
-- Encryption service for credentials at rest
-
-## 🚀 Running the Server
-
-### Development Mode (with auto-reload)
+**5. Start Development Server**
 
 ```bash
 npm run dev
 ```
 
-Features:
-- Auto-restart on file changes (via `tsx watch`)
-- Source map support for debugging
-- Full error stack traces
-- API endpoint discovery on startup
+Server runs at: `http://localhost:3001`
 
-### Production Mode
+**6. Verify Installation**
 
 ```bash
-npm run build  # Compile TypeScript
-npm start      # Run compiled JavaScript
+curl http://localhost:3001/health
 ```
 
-### Server Startup Output
-
-```
-╭──────────────────────────────────────────────────────╮
-│  🚀 Research Space Backend API - Server Started      │
-├──────────────────────────────────────────────────────┤
-│  📍 Server URL: http://localhost:3001                │
-│  🌍 Environment: development                         │
-│  📊 Total Endpoints: 22                              │
-├──────────────────────────────────────────────────────┤
-│  📚 API Endpoints:                                   │
-│                                                       │
-│  Health Endpoints:                                   │
-│    GET    /health                                    │
-│                                                       │
-│  Storage Endpoints:                                  │
-│    POST   /api/storage/configure                     │
-│    POST   /api/storage/test                          │
-│    GET    /api/storage/status                        │
-│    DELETE /api/storage/lock                          │
-│                                                       │
-│  Files Endpoints: (13 endpoints)                     │
-│  Folders Endpoints: (4 endpoints)                    │
-╰──────────────────────────────────────────────────────╯
-```
-
-### Database Commands
-
-```bash
-# View database in browser UI
-npx prisma studio
-
-# Create new migration
-npx prisma migrate dev --name migration_name
-
-# Apply migrations (production)
-npx prisma migrate deploy
-
-# Reset database (development only)
-npx prisma migrate reset
-
-# Generate Prisma Client after schema changes
-npx prisma generate
-```
-
-## 📚 API Endpoints
-
-### Health Check
-
-```http
-GET /health
-```
-
-**Response:**
+Expected response:
 ```json
 {
   "success": true,
   "message": "Server is healthy",
   "data": {
     "status": "ok",
-    "timestamp": "2025-10-04T16:40:17.308Z",
-    "uptime": 464.697
+    "timestamp": "2025-10-05T12:00:00.000Z",
+    "uptime": 10.5
   }
 }
 ```
 
-### Storage Endpoints (4 endpoints)
+---
 
-#### GET `/api/storage/status`
-Get current storage configuration status
+## Project Structure
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "configured": true,
-    "locked": true,
-    "provider": "minio",
-    "bucketName": "research-space-library",
-    "region": "ap-southeast-1",
-    "lastTested": "2025-10-04T14:06:55.265Z"
-  }
-}
+```
+backend/
+├── prisma/                      # Database schema and migrations
+│   ├── schema.prisma           # Prisma schema (PostgreSQL/SQLite)
+│   ├── migrations/             # Database migrations
+│   │   ├── 20251004161543_init/
+│   │   └── 20251004162826_add_folder_soft_delete/
+│   └── dev.db                  # SQLite database (development)
+│
+├── src/                         # TypeScript source code
+│   ├── server.ts               # Express app entry point
+│   │
+│   ├── config/                 # Configuration files
+│   │   └── [configuration modules]
+│   │
+│   ├── controllers/            # Request handlers (MVC)
+│   │   ├── storage.controller.ts    # Storage config & testing
+│   │   ├── files.controller.ts      # File operations & presigned URLs
+│   │   └── folders.controller.ts    # Folder CRUD & hierarchy
+│   │
+│   ├── routes/                 # API route definitions
+│   │   ├── storage.routes.ts   # POST /configure, /test | GET /status
+│   │   ├── files.routes.ts     # File endpoints (13 routes)
+│   │   └── folders.routes.ts   # Folder endpoints (6 routes)
+│   │
+│   ├── services/               # Business logic layer
+│   │   ├── encryption.service.ts       # AES-256-GCM encryption
+│   │   ├── presignedUrl.service.ts     # Presigned URL generation
+│   │   ├── storageProvider.service.ts  # Provider factory pattern
+│   │   ├── s3Provider.service.ts       # AWS S3 implementation
+│   │   ├── r2Provider.service.ts       # Cloudflare R2 implementation
+│   │   └── minioProvider.service.ts    # MinIO implementation
+│   │
+│   ├── models/                 # Prisma data models
+│   │   ├── storageConfig.model.ts   # Storage configuration
+│   │   ├── fileMetadata.model.ts    # File metadata
+│   │   ├── folder.model.ts          # Folder hierarchy
+│   │   └── uploadQueue.model.ts     # Upload queue management
+│   │
+│   ├── middleware/             # Express middleware
+│   │   ├── auth.middleware.ts       # Admin authentication
+│   │   └── validation.middleware.ts # Request validation (Joi)
+│   │
+│   ├── types/                  # TypeScript type definitions
+│   │   ├── storage.types.ts    # Storage-related types
+│   │   └── files.types.ts      # File-related types
+│   │
+│   ├── utils/                  # Utility functions
+│   │   └── routeDiscovery.ts   # Auto-discover and display routes
+│   │
+│   └── scripts/                # Utility scripts
+│       ├── migrate-json-to-db.ts    # JSON → Prisma migration
+│       └── verify-migration.ts      # Migration verification
+│
+├── docs/                        # Documentation
+│   ├── guide/                  # Guides and tutorials
+│   │   └── DEPLOYMENT_GUIDE.md  # Railway deployment guide
+│   ├── example/                # API examples and snippets
+│   └── misc/                   # Miscellaneous documentation
+│
+├── data/                        # Runtime data (gitignored)
+│   ├── database.db             # SQLite database
+│   ├── files.json              # Legacy file metadata (deprecated)
+│   ├── folders.json            # Legacy folder data (deprecated)
+│   └── storage-config.json     # Legacy storage config (deprecated)
+│
+├── dist/                        # Compiled JavaScript (gitignored)
+│   └── [compiled TypeScript output]
+│
+├── .env                         # Environment variables (gitignored)
+├── .env.example                # Environment template
+├── .gitignore                  # Git ignore rules
+├── package.json                # Dependencies and scripts
+├── tsconfig.json               # TypeScript configuration
+└── README.md                   # This file
 ```
 
-#### POST `/api/storage/configure`
-Configure storage provider with encrypted credentials
+### Key Directories
 
-#### POST `/api/storage/test`
-Test storage connection (read/write/CORS validation)
+#### `/prisma`
+- **Purpose**: Database schema, migrations, and Prisma Client
+- **Migration Files**: Immutable SQL migration history
+- **Schema File**: Single source of truth for database structure
 
-#### DELETE `/api/storage/lock`
-Remove configuration lock (requires admin password)
+#### `/src/controllers`
+- **Purpose**: HTTP request handling (Express route handlers)
+- **Responsibility**: Parse request → Call services → Format response
+- **Examples**: 
+  - `files.controller.ts`: 13 endpoints for file operations
+  - `folders.controller.ts`: 6 endpoints for folder management
+  - `storage.controller.ts`: 4 endpoints for storage configuration
+
+#### `/src/services`
+- **Purpose**: Business logic implementation
+- **Responsibility**: Database operations, external API calls, complex logic
+- **Examples**:
+  - `presignedUrl.service.ts`: Generates time-limited S3 URLs
+  - `encryption.service.ts`: Encrypts/decrypts storage credentials
+  - `s3Provider.service.ts`: AWS SDK S3 operations
+
+#### `/src/models`
+- **Purpose**: Prisma ORM wrapper models
+- **Responsibility**: Database queries, data validation, business rules
+- **Pattern**: Each model corresponds to a Prisma schema entity
+
+#### `/src/middleware`
+- **Purpose**: Express middleware functions
+- **Examples**:
+  - `auth.middleware.ts`: Admin password verification
+  - `validation.middleware.ts`: Joi schema validation
 
 ---
 
-### File Operations (13 endpoints)
+## Environment Configuration
 
-#### GET `/api/files/list`
-List files with pagination, search, and sorting
+### Environment Variables
 
-**Query Parameters:**
-- `page` (number): Page number (default: 1)
-- `limit` (number): Items per page (default: 50)
-- `search` (string): Search by filename
-- `folderId` (string): Filter by folder
-- `sortBy` (string): Sort field (name, size, createdAt, updatedAt)
-- `sortOrder` (string): asc or desc
+| Variable | Required | Default | Description |
+|----------|----------|---------|-------------|
+| `DATABASE_URL` | ✅ | `file:./data/database.db` | PostgreSQL/SQLite connection string |
+| `ENCRYPTION_KEY` | ✅ | - | 32-char AES-256 encryption key |
+| `API_KEY` | ✅ | - | API authentication key |
+| `ADMIN_PASSWORD` | ✅ | - | Admin override password |
+| `PORT` | ⚠️ | `3001` | Server port |
+| `NODE_ENV` | ⚠️ | `development` | Environment mode |
+| `CORS_ORIGIN` | ⚠️ | `http://localhost:5173` | Allowed frontend origin |
+| `LOG_LEVEL` | ❌ | `info` | Winston logging level |
 
-**Response:**
-```json
-{
-  "success": true,
-  "data": {
-    "files": [...],
-    "folders": [...],
-    "total": 4,
-    "page": 1,
-    "limit": 50,
-    "totalPages": 1
-  }
-}
+**Legend:**
+- ✅ Required for all environments
+- ⚠️ Required for production
+- ❌ Optional
+
+### Generating Secure Keys
+
+**Using Node.js Crypto:**
+
+```bash
+# ENCRYPTION_KEY (32 characters)
+node -e "console.log(require('crypto').randomBytes(32).toString('base64').slice(0, 32))"
+
+# API_KEY (48 characters)
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+
+# ADMIN_PASSWORD (32 characters)
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
-#### GET `/api/files/stats`
-Get library statistics (total files, folders, size)
+**Using OpenSSL:**
 
-#### GET `/api/files/:id`
-Get file metadata by ID
+```bash
+# ENCRYPTION_KEY
+openssl rand -base64 32 | cut -c1-32
 
-#### PUT `/api/files/:id`
-Update file metadata (name, starred, etc.)
+# API_KEY
+openssl rand -base64 48
 
-#### DELETE `/api/files/:id`
-Soft delete file
+# ADMIN_PASSWORD
+openssl rand -hex 32
+```
 
-#### POST `/api/files/presigned-url`
-Generate presigned URL for S3 upload
+### Database URL Formats
 
-#### POST `/api/files/:id/download-url`
-Generate presigned download URL
+**SQLite (Development):**
+```bash
+DATABASE_URL="file:./data/database.db"
+```
 
-#### POST `/api/files/:id/preview-url`
-Generate presigned preview URL
+**PostgreSQL (Production):**
+```bash
+DATABASE_URL="postgresql://user:password@localhost:5432/research_space?schema=public"
+```
 
-#### POST `/api/files/:id/share`
-Generate shareable public link
-
-#### POST `/api/files/:id/duplicate`
-Duplicate file using S3 copy (zero bandwidth)
-
-#### PUT `/api/files/:id/star`
-Toggle star/favorite status
-
-#### POST `/api/files/bulk-delete`
-Bulk delete multiple files
-
-#### POST `/api/files/bulk-move`
-Bulk move files to folder
+**Railway PostgreSQL:**
+```bash
+DATABASE_URL="${{Postgres.DATABASE_URL}}"
+```
 
 ---
 
-### Folder Operations (4 endpoints)
+## Database Setup
 
-#### POST `/api/folders`
-Create new folder
+### Prisma Schema
 
-**Request:**
-```json
-{
-  "name": "My Folder",
-  "parentId": null  // or parent folder ID
+Database models defined in `prisma/schema.prisma`:
+
+```prisma
+// Storage Configuration (encrypted)
+model StorageConfig {
+  id            String   @id @default(uuid())
+  provider      String   // "aws-s3", "cloudflare-r2", "minio"
+  encryptedData String   // AES-256-GCM encrypted JSON
+  iv            String   // Initialization vector
+  authTag       String   // Authentication tag
+  isLocked      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// File Metadata
+model File {
+  id        String    @id @default(uuid())
+  name      String
+  size      Int
+  type      String    // MIME type
+  s3Key     String    @unique
+  folderId  String?
+  starred   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+  
+  folder    Folder?   @relation(fields: [folderId])
+}
+
+// Folder Hierarchy
+model Folder {
+  id        String    @id @default(uuid())
+  name      String
+  parentId  String?
+  path      String    // Full path (e.g., "/Documents/Reports")
+  starred   Boolean   @default(false)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime? // Soft delete
+  
+  parent    Folder?  @relation("FolderHierarchy", fields: [parentId])
+  children  Folder[] @relation("FolderHierarchy")
+  files     File[]
 }
 ```
 
-#### GET `/api/folders/:id`
-Get folder details with contents
+### Migration Commands
 
-#### PUT `/api/folders/:id`
-Rename folder
-
-**Request:**
-```json
-{
-  "name": "New Name"
-}
+**Generate Migration:**
+```bash
+npx prisma migrate dev --name migration_name
 ```
 
-#### DELETE `/api/folders/:id`
-Soft delete folder and all descendants
+**Apply Migrations (Production):**
+```bash
+npx prisma migrate deploy
+```
+
+**Reset Database (Development Only):**
+```bash
+npx prisma migrate reset
+```
+
+**View Migration Status:**
+```bash
+npx prisma migrate status
+```
+
+**Generate Prisma Client:**
+```bash
+npx prisma generate
+```
+
+### Database Administration
+
+**Open Prisma Studio:**
+```bash
+npx prisma studio
+```
+
+This opens a web GUI at `http://localhost:5555` for browsing and editing database records.
+
+### Migration History
+
+| Date | Version | Description |
+|------|---------|-------------|
+| 2025-10-04 | `20251004161543_init` | Initial schema (StorageConfig, File, Folder, ConfigLock) |
+| 2025-10-04 | `20251004162826_add_folder_soft_delete` | Added soft delete to folders |
 
 ---
 
-**📖 Full API documentation:** [API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md)
+## API Endpoints
 
-## 🔧 Quick Test Examples
+### Base URL
 
-### 1. Check Server Health
+```
+http://localhost:3001
+```
+
+### Endpoint Summary
+
+| Category | Method | Endpoint | Description |
+|----------|--------|----------|-------------|
+| **Health** | GET | `/health` | Server health check |
+| **Storage** | GET | `/api/storage/status` | Get storage configuration status |
+| **Storage** | POST | `/api/storage/configure` | Configure storage provider |
+| **Storage** | POST | `/api/storage/test` | Test storage connection |
+| **Storage** | DELETE | `/api/storage/lock` | Remove configuration lock (admin) |
+| **Files** | POST | `/api/files/presigned-url` | Generate upload URL |
+| **Files** | POST | `/api/files/:id/download-url` | Generate download URL |
+| **Files** | POST | `/api/files/:id/preview-url` | Generate preview URL (inline) |
+| **Files** | GET | `/api/files/list` | List files (paginated) |
+| **Files** | GET | `/api/files/stats` | Get library statistics |
+| **Files** | GET | `/api/files/:id` | Get file metadata |
+| **Files** | PUT | `/api/files/:id` | Update file metadata |
+| **Files** | DELETE | `/api/files/:id` | Delete file (soft delete) |
+| **Files** | POST | `/api/files/bulk-delete` | Bulk delete files |
+| **Files** | POST | `/api/files/bulk-move` | Bulk move files |
+| **Files** | POST | `/api/files/:id/share` | Generate share link |
+| **Files** | POST | `/api/files/:id/duplicate` | Duplicate file (S3 copy) |
+| **Files** | PUT | `/api/files/:id/star` | Toggle star/favorite |
+| **Folders** | POST | `/api/folders` | Create folder |
+| **Folders** | GET | `/api/folders/:id` | Get folder details |
+| **Folders** | PUT | `/api/folders/:id` | Rename folder |
+| **Folders** | DELETE | `/api/folders/:id` | Delete folder (recursive) |
+| **Folders** | GET | `/api/folders/:id/contents` | Get folder contents |
+| **Folders** | GET | `/api/folders/:id/breadcrumb` | Get breadcrumb path |
+
+**Total: 22 Endpoints**
+
+### Example Requests
+
+**Health Check:**
 ```bash
 curl http://localhost:3001/health
 ```
 
-### 2. Get Storage Status
-```bash
-curl http://localhost:3001/api/storage/status
-```
-
-### 3. Configure AWS S3
+**Configure Storage:**
 ```bash
 curl -X POST http://localhost:3001/api/storage/configure \
   -H "Content-Type: application/json" \
   -d '{
     "provider": "aws-s3",
     "credentials": {
-      "accessKeyId": "YOUR_ACCESS_KEY",
-      "secretAccessKey": "YOUR_SECRET_KEY",
+      "accessKeyId": "AKIAIOSFODNN7EXAMPLE",
+      "secretAccessKey": "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY",
       "region": "us-east-1",
-      "bucket": "your-bucket-name"
+      "bucket": "my-bucket"
     }
   }'
 ```
 
-### 4. Configure Cloudflare R2
+**List Files:**
 ```bash
-curl -X POST http://localhost:3001/api/storage/configure \
+curl "http://localhost:3001/api/files/list?page=1&limit=50&folderId=null"
+```
+
+**Generate Upload URL:**
+```bash
+curl -X POST http://localhost:3001/api/files/presigned-url \
   -H "Content-Type: application/json" \
   -d '{
-    "provider": "cloudflare-r2",
-    "credentials": {
-      "accessKeyId": "YOUR_R2_ACCESS_KEY",
-      "secretAccessKey": "YOUR_R2_SECRET_KEY",
-      "region": "auto",
-      "bucket": "your-r2-bucket",
-      "endpoint": "https://YOUR_ACCOUNT_ID.r2.cloudflarestorage.com"
-    }
+    "fileName": "document.pdf",
+    "fileType": "application/pdf",
+    "fileSize": 1024000,
+    "folderId": null
   }'
 ```
 
-### 5. Configure MinIO (Local Development)
+### API Response Format
+
+All endpoints return standardized JSON responses:
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... },
+  "timestamp": "2025-10-05T12:00:00.000Z"
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "Error type",
+  "message": "Human-readable error message",
+  "timestamp": "2025-10-05T12:00:00.000Z"
+}
+```
+
+### Detailed API Documentation
+
+For complete API documentation with request/response examples, see:
+- **[API Reference](docs/misc/API_REFERENCE.md)** - Complete endpoint documentation
+- **[Example Requests](docs/example/)** - Curl examples and Postman collection
+
+---
+
+## Development
+
+### Available Scripts
+
+```json
+{
+  "dev": "tsx watch src/server.ts",           // Start dev server with hot reload
+  "build": "tsc",                             // Compile TypeScript → dist/
+  "start": "node dist/server.js",             // Start production server
+  "lint": "eslint src --ext .ts",             // Run ESLint
+  "test": "jest",                             // Run tests (when implemented)
+  "db:generate": "npx prisma generate",       // Generate Prisma Client
+  "db:migrate": "npx prisma migrate dev",     // Create & apply migration
+  "db:deploy": "npx prisma migrate deploy",   // Apply migrations (prod)
+  "db:studio": "npx prisma studio",           // Open Prisma Studio GUI
+  "db:seed": "tsx prisma/seed.ts"             // Seed database (if implemented)
+}
+```
+
+### Development Workflow
+
+**1. Start Development Server:**
 ```bash
-curl -X POST http://localhost:3001/api/storage/configure \
-  -H "Content-Type: application/json" \
-  -d '{
-    "provider": "minio",
-    "credentials": {
-      "accessKeyId": "minioadmin",
-      "secretAccessKey": "minioadmin",
-      "region": "us-east-1",
-      "bucket": "research-bucket",
-      "endpoint": "http://localhost:9000"
-    }
-  }'
-```
-
-### 6. Test Connection (Saved Config)
-```bash
-curl -X POST http://localhost:3001/api/storage/test \
-  -H "Content-Type: application/json" \
-  -d '{}'
-```
-
-## 🏗️ Project Structure
-
-```
-backend/
-├── src/                          # TypeScript source files
-│   ├── controllers/              # Request handlers (Express controllers)
-│   │   ├── storage.controller.ts     # Storage API handlers (configure, test, status)
-│   │   ├── files.controller.ts       # File operations (upload, download, share, duplicate)
-│   │   └── folders.controller.ts     # Folder management handlers
-│   │
-│   ├── routes/                   # API route definitions
-│   │   ├── storage.routes.ts         # Storage endpoint routing
-│   │   ├── files.routes.ts           # File endpoint routing
-│   │   └── folders.routes.ts         # Folder endpoint routing
-│   │
-│   ├── services/                 # Business logic layer
-│   │   ├── encryption.service.ts       # AES-256-GCM encryption/decryption
-│   │   ├── storageProvider.service.ts  # Provider factory pattern
-│   │   ├── s3Provider.service.ts       # AWS S3 implementation + FileOperations
-│   │   ├── r2Provider.service.ts       # Cloudflare R2 implementation + FileOperations
-│   │   ├── minioProvider.service.ts    # MinIO implementation + FileOperations
-│   │   └── presignedUrl.service.ts     # Presigned URL generation service
-│   │
-│   ├── middleware/               # Express middleware
-│   │   ├── auth.middleware.ts         # API key authentication
-│   │   └── validation.middleware.ts   # Zod schema validation
-│   │
-│   ├── models/                   # Data models & persistence (JSON file-based)
-│   │   ├── storageConfig.model.ts     # Storage configuration CRUD
-│   │   ├── fileMetadata.model.ts      # File metadata management
-│   │   ├── folder.model.ts            # Folder hierarchy management
-│   │   └── uploadQueue.model.ts       # Upload queue tracking
-│   │
-│   ├── types/                    # TypeScript type definitions
-│   │   ├── storage.types.ts           # Storage provider interfaces & types
-│   │   └── files.types.ts             # File/folder interfaces & types
-│   │
-│   ├── config/                   # Configuration files (empty - using env vars)
-│   ├── utils/                    # Utility functions (empty - future use)
-│   └── server.ts                 # Express app entry point & server setup
-│
-├── docs/                         # Documentation files
-│   ├── API_DOCUMENTATION.md      # Complete API reference (updated Oct 2025)
-│   ├── PHASE1_SUMMARY.md         # Phase 1 implementation summary
-│   └── PHASE2_SUMMARY.md         # Phase 2 implementation summary
-│
-├── data/                         # Runtime data storage (gitignored)
-│   ├── storage-config.json       # Encrypted storage configuration
-│   ├── config-lock.json          # Configuration lock metadata
-│   ├── files.json                # File metadata database
-│   └── folders.json              # Folder hierarchy database
-│
-├── dist/                         # Compiled JavaScript output (gitignored)
-│   ├── controllers/
-│   ├── routes/
-│   ├── services/
-│   ├── middleware/
-│   ├── models/
-│   ├── types/
-│   └── server.js
-│
-├── node_modules/                 # npm dependencies (gitignored)
-├── package.json                  # Project dependencies & scripts
-├── package-lock.json             # Dependency lock file
-├── tsconfig.json                 # TypeScript compiler configuration
-├── .env                          # Environment variables (gitignored)
-├── .env.example                  # Environment template
-├── .gitignore                    # Git ignore rules
-├── server.log                    # Server logs (gitignored)
-├── server-test.log               # Test logs (gitignored)
-└── README.md                     # This file
-```
-
-### File Count Summary
-- **Controllers:** 3 files (storage, files, folders)
-- **Routes:** 3 files (storage, files, folders)
-- **Services:** 6 files (providers, encryption, presigned URLs)
-- **Models:** 4 files (storage config, files, folders, upload queue)
-- **Middleware:** 2 files (auth, validation)
-- **Types:** 2 files (storage, files)
-- **Documentation:** 3 files (API docs, Phase 1 & 2 summaries)
-- **Total TypeScript Files:** 21 source files
-- **Total Lines of Code:** ~5,000+ (excluding tests and node_modules)
-
-### Architecture Overview
-```
-Express Server (server.ts)
-    │
-    ├── Middleware Layer
-    │   ├── CORS
-    │   ├── Helmet (Security Headers)
-    │   ├── Compression
-    │   ├── Rate Limiting (100 req/15min)
-    │   ├── Authentication (auth.middleware.ts)
-    │   └── Validation (validation.middleware.ts)
-    │
-    ├── Routes
-    │   ├── Health: GET /health
-    │   │
-    │   ├── Storage Routes (storage.routes.ts)
-    │   │   ├── GET    /api/storage/status
-    │   │   ├── POST   /api/storage/configure
-    │   │   ├── POST   /api/storage/test
-    │   │   └── DELETE /api/storage/lock
-    │   │
-    │   ├── Files Routes (files.routes.ts)
-    │   │   ├── POST   /api/files/presigned-url
-    │   │   ├── POST   /api/files/:id/download-url
-    │   │   ├── POST   /api/files/:id/share          # NEW: Context Menu
-    │   │   ├── POST   /api/files/:id/duplicate      # NEW: Context Menu
-    │   │   ├── PUT    /api/files/:id/star           # NEW: Context Menu
-    │   │   ├── GET    /api/files/list
-    │   │   ├── GET    /api/files/:id
-    │   │   ├── PUT    /api/files/:id
-    │   │   ├── DELETE /api/files/:id
-    │   │   ├── POST   /api/files/bulk-delete
-    │   │   └── POST   /api/files/bulk-move
-    │   │
-    │   └── Folders Routes (folders.routes.ts)
-    │       ├── POST   /api/folders
-    │       ├── GET    /api/folders/list
-    │       ├── GET    /api/folders/:id
-    │       ├── PUT    /api/folders/:id/rename
-    │       ├── DELETE /api/folders/:id
-    │       └── GET    /api/folders/:id/breadcrumb
-    │
-    ├── Controllers Layer
-    │   ├── StorageController (storage.controller.ts)
-    │   ├── FilesController (files.controller.ts)
-    │   └── FoldersController (folders.controller.ts)
-    │
-    ├── Services Layer
-    │   ├── PresignedUrlService (presignedUrl.service.ts)
-    │   │   └── Generates time-limited upload/download URLs
-    │   │
-    │   ├── StorageProvider Factory (storageProvider.service.ts)
-    │   │   ├── S3Provider (s3Provider.service.ts)
-    │   │   │   └── Implements: StorageProvider + FileOperations
-    │   │   ├── R2Provider (r2Provider.service.ts)
-    │   │   │   └── Implements: StorageProvider + FileOperations
-    │   │   └── MinIOProvider (minioProvider.service.ts)
-    │   │       └── Implements: StorageProvider + FileOperations
-    │   │
-    │   └── EncryptionService (encryption.service.ts)
-    │       └── AES-256-GCM encryption for credentials
-    │
-    └── Models Layer (JSON File-Based Persistence)
-        ├── StorageConfigModel (storageConfig.model.ts)
-        ├── FileMetadataModel (fileMetadata.model.ts)
-        ├── FolderModel (folder.model.ts)
-        └── UploadQueueModel (uploadQueue.model.ts)
-```
-
-### Data Flow Example: File Upload
-```
-1. Frontend → POST /api/files/presigned-url
-2. FilesController.getPresignedUploadUrl()
-3. PresignedUrlService.generateUploadUrl()
-4. StorageProvider.generatePresignedUploadUrl() (S3/R2/MinIO)
-5. FileMetadataModel.create() → Save to files.json
-6. Return presigned URL to frontend
-7. Frontend uploads directly to S3 (no backend bandwidth)
-```
-
-### Data Flow Example: Share Link
-```
-1. Frontend → POST /api/files/:id/share { expiresInDays: 7 }
-2. FilesController.generateShareLink()
-3. FileMetadataModel.findById() → Get file metadata
-4. PresignedUrlService.generateDownloadUrl() with extended expiration
-5. Return shareable URL (valid for 7 days)
-```
-
-## 🔒 Security Features
-
-1. **AES-256-GCM Encryption**: All credentials encrypted at rest
-2. **API Key Authentication**: Bearer token or X-API-Key header
-3. **Rate Limiting**: 100 requests per 15 minutes per IP
-4. **CORS Protection**: Only configured origins allowed
-5. **Configuration Lock**: Prevents accidental changes
-6. **Helmet.js**: Security headers
-7. **Input Validation**: Zod schema validation
-8. **No Plaintext Storage**: Credentials never stored in plain text
-
-## 🧪 Testing
-
-### Manual Testing
-```bash
-# Run tests with the server running
 npm run dev
+```
 
-# In another terminal
+Server starts at `http://localhost:3001` with hot reload enabled.
+
+**2. Make Code Changes:**
+- Edit files in `src/`
+- Server auto-restarts on file changes
+- Check terminal for TypeScript errors
+
+**3. Test Changes:**
+```bash
+# Health check
 curl http://localhost:3001/health
+
+# Test specific endpoint
 curl http://localhost:3001/api/storage/status
 ```
 
-### TypeScript Compilation Test
-```bash
-npm run build
-```
+**4. Database Changes:**
 
-## 🐛 Troubleshooting
-
-### Port Already in Use
-```bash
-# Kill process on port 3001
-lsof -ti:3001 | xargs kill -9
-```
-
-### Permission Errors
-Ensure your S3 credentials have the following permissions:
-- `s3:HeadBucket`
-- `s3:PutObject`
-- `s3:DeleteObject`
-- `s3:GetBucketCors`
-- `s3:CreateMultipartUpload`
-- `s3:AbortMultipartUpload`
-
-### Encryption Key Issues
-Generate a proper 32-byte key:
-```bash
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-```
-
-## 📝 Environment Variables
-
-| Variable | Required | Default | Description |
-|----------|----------|---------|-------------|
-| PORT | No | 3001 | Server port |
-| NODE_ENV | No | development | Environment mode |
-| ENCRYPTION_KEY | Yes | - | 32-character encryption key |
-| API_KEY | No | - | API authentication key |
-| CORS_ORIGIN | No | http://localhost:5173 | Allowed CORS origin |
-| LOG_LEVEL | No | info | Logging level |
-
-## 🚀 Deployment
-
-### Production Checklist
-- [ ] Set `NODE_ENV=production`
-- [ ] Generate secure `ENCRYPTION_KEY` (32 bytes)
-- [ ] Set strong `API_KEY`
-- [ ] Configure proper `CORS_ORIGIN`
-- [ ] Use HTTPS
-- [ ] Enable firewall rules
-- [ ] Set up monitoring and logging
-- [ ] Regular security audits
-
-### Docker Deployment (Future)
-```dockerfile
-# Dockerfile (to be created)
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci --only=production
-COPY dist ./dist
-EXPOSE 3001
-CMD ["node", "dist/server.js"]
-```
-
-## �️ Database Schema
-
-### Prisma Models (4 tables)
-
-#### StorageConfig
-Stores encrypted storage provider credentials
-
-```prisma
-model StorageConfig {
-  id            String   @id @default(uuid())
-  provider      String   // "minio" | "aws-s3" | "cloudflare-r2"
-  encryptedData String   // AES-256-GCM encrypted credentials
-  iv            String   // Initialization vector
-  authTag       String   // Authentication tag
-  isLocked      Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  lock          ConfigLock?
-}
-```
-
-#### ConfigLock
-Prevents accidental storage provider changes
-
-```prisma
-model ConfigLock {
-  id              String   @id @default(uuid())
-  configurationId String   @unique
-  lockedAt        DateTime @default(now())
-  lockedBy        String
-  reason          String
-  canOverride     Boolean  @default(false)
-  config          StorageConfig @relation(...)
-}
-```
-
-#### File
-File metadata with S3 key references
-
-```prisma
-model File {
-  id        String    @id @default(uuid())
-  name      String
-  size      Int
-  type      String
-  s3Key     String    @unique  // Enforced uniqueness
-  folderId  String?
-  starred   Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?  // Soft delete support
-  folder    Folder?   @relation(...)
-  
-  @@index([folderId])      // Fast folder lookups
-  @@index([deletedAt])     // Exclude deleted files
-  @@index([starred])       // Quick favorite queries
-}
-```
-
-#### Folder
-Hierarchical folder structure with paths
-
-```prisma
-model Folder {
-  id        String    @id @default(uuid())
-  name      String
-  parentId  String?
-  path      String    // Auto-generated full path
-  starred   Boolean   @default(false)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  deletedAt DateTime?  // Soft delete with cascading
-  parent    Folder?  @relation("FolderHierarchy", ...)
-  children  Folder[] @relation("FolderHierarchy")
-  files     File[]
-  
-  @@index([parentId])   // Fast hierarchy traversal
-  @@index([starred])
-  @@index([deletedAt])
-}
-```
-
-### Migrations
-
-| Migration | Date | Description |
-|-----------|------|-------------|
-| `20251004161543_init` | Oct 4, 2025 | Initial schema with 4 models |
-| `20251004162826_add_folder_soft_delete` | Oct 4, 2025 | Add soft delete to folders |
-
-### Database Files
-
-- **Development**: `data/database.db` (SQLite, ~72KB)
-- **Production**: PostgreSQL on Railway
-- **Backups**: `data/.backup/*.json` (legacy data preserved)
-
-## 🚀 Deployment
-
-### Railway Deployment (PostgreSQL)
-
-1. **Update Schema for PostgreSQL**
-
-Edit `prisma/schema.prisma`:
-```prisma
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-2. **Configure Railway Environment**
+If you modify `prisma/schema.prisma`:
 
 ```bash
-# Railway automatically sets DATABASE_URL
-DATABASE_URL="${{Postgres-Research-Space.DATABASE_URL}}"
-
-# Set other environment variables in Railway dashboard
-ENCRYPTION_KEY="${{secret()}}"
-API_KEY="${{secret()}}"
-ADMIN_PASSWORD="${{secret()}}"
-CORS_ORIGIN="https://your-frontend.com"
-NODE_ENV="production"
-```
-
-3. **Deploy & Migrate**
-
-```bash
-# Railway runs this automatically
-npm run build
-npx prisma migrate deploy
-npm start
-```
-
-### Vercel/Netlify Deployment (Serverless)
-
-**Note**: Prisma works with serverless, but requires:
-- Connection pooling (use Prisma Accelerate or PgBouncer)
-- Database connection string with pooling
-- Longer cold start times (~3-5s)
-
-**Recommended**: Use Railway or traditional hosting for optimal Prisma performance.
-
-### Docker Deployment
-
-```dockerfile
-FROM node:18-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-COPY prisma ./prisma/
-
-RUN npm ci
-RUN npx prisma generate
-
-COPY . .
-RUN npm run build
-
-EXPOSE 3001
-
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
-```
-
-## 🧪 Testing
-
-### Quick Health Check
-
-```bash
-curl http://localhost:3001/health | jq
-```
-
-### Run Test Suite
-
-```bash
-# Install dependencies
-npm install
-
-# Run all tests
-npm test
-
-# Run with coverage
-npm run test:coverage
-```
-
-### Manual Testing
-
-```bash
-# Check all endpoints
-curl -s http://localhost:3001/health | jq '.success'
-
-# Verify database
-npx prisma studio  # Opens web UI at http://localhost:5555
-
-# Check file stats
-curl -s http://localhost:3001/api/files/stats | jq
-```
-
-## 🐛 Troubleshooting
-
-### Database Issues
-
-**Problem**: `Error: Can't reach database server`
-**Solution**:
-```bash
-# Check if database file exists
-ls -lh data/database.db
+# Create migration
+npx prisma migrate dev --name descriptive_name
 
 # Regenerate Prisma Client
 npx prisma generate
-
-# Reset database (dev only)
-npx prisma migrate reset
 ```
 
-**Problem**: Migration conflicts
-**Solution**:
+**5. View Database:**
 ```bash
-# Check migration status
-npx prisma migrate status
-
-# Resolve conflicts
-npx prisma migrate resolve --applied "migration_name"
-```
-
-### Performance Issues
-
-**Problem**: Slow queries
-**Solution**:
-```bash
-# View query logs
-LOG_LEVEL=debug npm run dev
-
-# Use Prisma Studio to inspect data
 npx prisma studio
-
-# Check indexes in schema
 ```
 
-**Problem**: Connection pool exhausted
-**Solution**:
-```javascript
-// Increase pool size in production
-const prisma = new PrismaClient({
-  datasources: {
-    db: {
-      url: process.env.DATABASE_URL + "?connection_limit=10"
-    }
-  }
-});
-```
+Opens GUI at `http://localhost:5555`
 
-### Storage Provider Issues
+### Code Style
 
-**Problem**: Presigned URLs not working
-**Solution**:
-- Check CORS configuration on S3 bucket
-- Verify IAM permissions for presigned URLs
-- Ensure bucket region matches configuration
+**TypeScript Configuration:**
+- **Strict Mode**: Enabled
+- **Target**: ES2022
+- **Module**: ESNext
+- **Path Aliases**: `@/*` → `src/*`
 
-**Problem**: MinIO connection refused
-**Solution**:
+**Linting:**
 ```bash
-# Check MinIO is running
-docker ps | grep minio
+npm run lint
+```
 
-# Test endpoint
-curl http://localhost:9000/minio/health/live
+### Adding New Features
+
+**1. Create Route:**
+```typescript
+// src/routes/feature.routes.ts
+import { Router } from 'express';
+import { FeatureController } from '../controllers/feature.controller.js';
+
+const router = Router();
+router.get('/', FeatureController.getAll);
+router.post('/', FeatureController.create);
+
+export default router;
+```
+
+**2. Create Controller:**
+```typescript
+// src/controllers/feature.controller.ts
+import { Request, Response } from 'express';
+import { FeatureModel } from '../models/feature.model.js';
+
+export class FeatureController {
+  static async getAll(req: Request, res: Response) {
+    const items = await FeatureModel.findAll();
+    res.json({ success: true, data: items });
+  }
+}
+```
+
+**3. Create Service (if needed):**
+```typescript
+// src/services/feature.service.ts
+export class FeatureService {
+  async processFeature(data: unknown) {
+    // Business logic here
+    return result;
+  }
+}
+```
+
+**4. Register Route:**
+```typescript
+// src/server.ts
+import featureRoutes from './routes/feature.routes.js';
+
+app.use('/api/features', featureRoutes);
 ```
 
 ---
 
-## 📋 Recent Updates & Changelog
+## Deployment
 
-### October 2025 - Phase 2: Database Migration 🎉
+### Production Build
 
-**Major Update**: Migrated from JSON file storage to Prisma ORM + SQLite/PostgreSQL
+**1. Compile TypeScript:**
+```bash
+npm run build
+```
 
-**✅ Completed Features:**
-- Database schema with 4 relational models
-- Prisma ORM integration with type-safe queries
-- SQLite for development, PostgreSQL for production
-- Automatic migrations and schema versioning
-- 6-10x performance improvement over file-based storage
-- Zero breaking changes (all APIs maintain compatibility)
+**2. Verify Build:**
+```bash
+ls -la dist/
+```
 
-**Database Models:**
-- `StorageConfig` - Encrypted provider credentials
-- `ConfigLock` - Configuration locking mechanism
-- `File` - File metadata with S3 keys and soft delete
-- `Folder` - Hierarchical folder structure with paths
+**3. Test Production Build:**
+```bash
+NODE_ENV=production npm start
+```
 
-**Performance Improvements:**
-- Find file by ID: **10x faster** (5ms → 0.5ms)
-- List 50 files: **7.5x faster** (15ms → 2ms)
-- Bulk operations: **10x faster** (50ms → 5ms)
-- Folder hierarchy: **6.7x faster** (20ms → 3ms)
+### Railway Deployment
 
-**📖 Documentation:**
-- [Phase 2C & 2D Completion Report](./docs/PHASE2C_2D_COMPLETION.md)
-- [Database Schema Reference](./prisma/schema.prisma)
+**Quick Deploy:**
 
-### October 2025 - Context Menu Operations
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new)
 
-**✅ Added Features:**
-- Share link generation with configurable expiration (1, 7, 14, 30 days)
-- File duplication with S3-native copy (zero bandwidth usage)
-- Star/favorite functionality for files and folders
-- Extended storage provider interface for copy operations
+**Manual Deployment:**
 
-### September 2025 - File & Folder Management
+See comprehensive guide: **[Railway Deployment Guide](docs/guide/DEPLOYMENT_GUIDE.md)**
 
-**✅ Initial Features:**
-- Presigned URL generation for direct S3 uploads/downloads
-- File metadata management with soft delete
-- Folder hierarchy with breadcrumb navigation
-- Bulk operations (move, delete multiple files)
-- Upload queue tracking
+**Key Steps:**
+1. Connect GitHub repository
+2. Add PostgreSQL database
+3. Set environment variables
+4. Configure build commands
+5. Deploy
 
-### September 2025 - Storage Configuration
+**Environment Variables for Railway:**
+```bash
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+ENCRYPTION_KEY=${{secret(32, "chars")}}
+API_KEY=${{secret(48, "chars")}}
+ADMIN_PASSWORD=${{secret(32, "chars")}}
+NODE_ENV=production
+PORT=3001
+CORS_ORIGIN=https://your-frontend.vercel.app
+```
 
-**✅ Core Features:**
-- Multi-provider storage (AWS S3, Cloudflare R2, MinIO)
-- AES-256-GCM credential encryption
-- Comprehensive connection testing
-- Admin password-protected lock mechanism
+### Docker Deployment
 
----
+**Dockerfile:**
+```dockerfile
+FROM node:18-alpine
 
-## 📊 Project Statistics
+WORKDIR /app
 
-**Current Version**: 2.1.0  
-**Last Updated**: October 4, 2025  
-**Status**: ✅ **Production Ready**
+COPY package*.json ./
+RUN npm ci --only=production
 
-| Metric | Value |
-|--------|-------|
-| Total API Endpoints | 22 |
-| Database Models | 4 (Prisma ORM) |
-| Storage Providers | 3 (AWS S3, R2, MinIO) |
-| Database Type | SQLite (dev), PostgreSQL (prod) |
-| Authentication | API Key + Admin Password |
-| Test Coverage | 100% (15/15 tests passing) |
-| TypeScript | Strict mode enabled |
-| Performance | 6-10x faster than JSON files |
+COPY prisma ./prisma
+RUN npx prisma generate
 
----
+COPY dist ./dist
 
-## 📚 Documentation
+EXPOSE 3001
 
-- **[API Documentation](./docs/API_DOCUMENTATION.md)** - Complete API reference
-- **[Phase 2 Completion](./docs/PHASE2C_2D_COMPLETION.md)** - Database migration report
-- **[Quick Reference](./docs/QUICK_REFERENCE.md)** - Common commands and examples
-- **[Prisma Schema](./prisma/schema.prisma)** - Database schema definition
+CMD ["npm", "start"]
+```
+
+**Build & Run:**
+```bash
+docker build -t research-space-backend .
+docker run -p 3001:3001 --env-file .env research-space-backend
+```
 
 ---
 
-## 📄 License
+## Documentation
 
-MIT License - See project root for details
+### Available Documentation
 
-## 🤝 Contributing
+| Document | Description | Location |
+|----------|-------------|----------|
+| **README.md** | This file - Project overview & quick start | `/backend/README.md` |
+| **Deployment Guide** | Railway deployment step-by-step | [`/backend/docs/guide/DEPLOYMENT_GUIDE.md`](docs/guide/DEPLOYMENT_GUIDE.md) |
+| **API Reference** | Complete endpoint documentation | `/backend/docs/misc/API_REFERENCE.md` |
+| **Development Guide** | Contributing & development setup | `/backend/docs/misc/DEVELOPMENT.md` |
+| **Security Guide** | Security best practices | `/backend/docs/misc/SECURITY.md` |
+| **Prisma Schema** | Database schema documentation | `/backend/prisma/schema.prisma` |
 
-Contributions welcome! Please:
+### External Resources
+
+- **Express.js**: [expressjs.com/en/guide](https://expressjs.com/en/guide/routing.html)
+- **Prisma ORM**: [prisma.io/docs](https://www.prisma.io/docs/)
+- **TypeScript**: [typescriptlang.org/docs](https://www.typescriptlang.org/docs/)
+- **AWS S3**: [docs.aws.amazon.com/s3](https://docs.aws.amazon.com/s3/)
+- **Railway**: [docs.railway.com](https://docs.railway.com/)
+
+---
+
+## Contributing
+
+### Development Setup
+
 1. Fork the repository
-2. Create a feature branch
-3. Follow TypeScript best practices
-4. Add tests for new features
-5. Run `npm run build` to verify
-6. Submit a pull request
+2. Clone your fork:
+   ```bash
+   git clone https://github.com/YOUR_USERNAME/research-vite-app.git
+   cd research-vite-app/backend
+   ```
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
+4. Create `.env` from `.env.example`
+5. Setup database:
+   ```bash
+   npx prisma migrate dev
+   npx prisma generate
+   ```
+6. Start development server:
+   ```bash
+   npm run dev
+   ```
 
-## 📞 Support
+### Contribution Guidelines
 
-For issues or questions:
-1. Check [API_DOCUMENTATION.md](./docs/API_DOCUMENTATION.md)
-2. Review [troubleshooting section](#-troubleshooting)
-3. Open an issue on GitHub
-4. Contact the development team
+- **Code Style**: Follow TypeScript strict mode
+- **Commits**: Use conventional commits (e.g., `feat:`, `fix:`, `docs:`)
+- **Testing**: Add tests for new features (when test suite is implemented)
+- **Documentation**: Update relevant docs with code changes
+- **Pull Requests**: Provide clear description of changes
+
+### Reporting Issues
+
+Report bugs or request features via [GitHub Issues](https://github.com/PRATS-gits/research-vite-app/issues)
+
+Include:
+- Clear description
+- Steps to reproduce (for bugs)
+- Expected vs actual behavior
+- Environment details (Node version, OS, etc.)
 
 ---
 
-## 🙏 Acknowledgments
+## License
 
-- **Prisma** - Excellent ORM with great TypeScript support
-- **AWS SDK** - Reliable S3 client implementation
-- **Express.js** - Robust web framework
-- **Railway** - Easy PostgreSQL deployment
+This project is licensed under the **MIT License**.
+
+See [LICENSE](LICENSE) file for details.
 
 ---
 
-**Built with ❤️ by the Research Space Team**  
-**Backend Architecture**: Express + Prisma + TypeScript  
-**Database**: Prisma ORM with SQLite (dev) & PostgreSQL (prod)  
-**Storage**: Multi-provider S3-compatible storage
+## Support
+
+### Project Maintainers
+
+- **Team**: Research Space Team
+- **Repository**: [PRATS-gits/research-vite-app](https://github.com/PRATS-gits/research-vite-app)
+
+### Getting Help
+
+- 📖 **Documentation**: Read guides in `/backend/docs/`
+- 🐛 **Issues**: [GitHub Issues](https://github.com/PRATS-gits/research-vite-app/issues)
+- 💬 **Discussions**: [GitHub Discussions](https://github.com/PRATS-gits/research-vite-app/discussions)
+
+---
+
+## Changelog
+
+### Version 1.0.0 (2025-10-05)
+
+**✨ Features:**
+- Prisma ORM integration (PostgreSQL/SQLite)
+- Multi-provider S3 storage support (AWS, R2, MinIO)
+- Presigned URL generation for direct S3 uploads
+- Folder hierarchy with unlimited nesting
+- Soft delete mechanism with recovery
+- Context menu operations (share, duplicate, star)
+- Bulk file operations (delete, move)
+- Library statistics endpoint
+- Secure credential encryption (AES-256-GCM)
+- Rate limiting and security headers
+- Route auto-discovery utility
+
+**🔧 Infrastructure:**
+- TypeScript strict mode
+- Express.js 4.21
+- Prisma ORM 6.16
+- AWS SDK v3
+- Helmet.js security
+- Joi validation
+- Winston logging
+
+**📚 Documentation:**
+- Comprehensive README
+- Railway deployment guide
+- API reference documentation
+- Development guidelines
+
+---
+
+**Built with ❤️ by Research Space Team**
+
+**Last Updated**: October 5, 2025
